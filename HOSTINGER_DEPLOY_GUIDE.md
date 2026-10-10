@@ -1,6 +1,6 @@
-# Panduan Deploy Otomatis SIPASADE ke Hostinger via GitHub
+# Panduan Deploy Otomatis E-Parlemen AI ke Hostinger via GitHub
 
-Repositori GitHub: `https://github.com/digidewan-sulbar/sipasade.git`
+Repositori GitHub: `https://github.com/digidewan-sulbar/--Parlemen-AI.git`
 
 ---
 
@@ -14,6 +14,8 @@ Repositori GitHub: `https://github.com/digidewan-sulbar/sipasade.git`
    - `db.js` & `db.ts`: Siap terhubung ke Supabase (`https://ydezarlbcofzmaosuphr.supabase.co`).
 4. **CI/CD GitHub Actions**:
    - `.github/workflows/deploy.yml`: Workflow otomatis memeriksa build setiap kali push ke branch `main`.
+5. **Fitur In-App Deploy**:
+   - Tombol **Deploy GitHub** langsung tersedia di bilah atas aplikasi.
 
 ---
 
@@ -23,15 +25,15 @@ Repositori GitHub: `https://github.com/digidewan-sulbar/sipasade.git`
 1. Buka **hPanel Hostinger** Anda.
 2. Masuk ke menu **Advanced** > **Git** (atau cari "Git" di kolom pencarian hPanel).
 3. Isi form pembuatan repository:
-   - **Repository URL**: `https://github.com/digidewan-sulbar/sipasade.git`
-   - **Branch**: `main` (atau `master`)
+   - **Repository URL**: `https://github.com/digidewan-sulbar/--Parlemen-AI.git`
+   - **Branch**: `main`
    - **Install directory**: `public_html` (atau folder aplikasi Node.js Anda)
 4. Klik **Create** / **Deploy**.
 5. Buka tab **Auto Deployment / Webhook**:
    - Salin **Webhook URL** yang disediakan oleh Hostinger.
-   - Buka GitHub repository Anda di `https://github.com/digidewan-sulbar/sipasade/settings/hooks`.
+   - Buka GitHub repository Anda di `https://github.com/digidewan-sulbar/--Parlemen-AI/settings/hooks`.
    - Klik **Add webhook**, tempel Webhook URL tersebut, pilih `Content type: application/json`, lalu klik **Add webhook**.
-   - Sekarang, setiap kali Anda push commit ke GitHub, Hostinger otomatis menarik (`pull`) kode terbaru!
+   - Sekarang, setiap kali Anda push commit dari aplikasi, Hostinger otomatis menarik (`pull`) dan memperbarui sistem!
 
 ---
 
