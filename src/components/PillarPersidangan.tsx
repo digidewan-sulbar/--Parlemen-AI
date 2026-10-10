@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RanperdaItem, RisalahItem, RdpRecommendationItem, StatusRekomendasi } from '../types';
+import { RanperdaItem, RisalahItem, RdpRecommendationItem, StatusRekomendasi, JenisRapat } from '../types';
 import { SentimentAnalysisSummary } from './SentimentAnalysisSummary';
 import { RanperdaFormModal } from './forms/RanperdaFormModal';
 import { RisalahFormModal } from './forms/RisalahFormModal';
@@ -140,7 +140,7 @@ export const PillarPersidangan: React.FC<Props> = ({
   const [proofStatus, setProofStatus] = useState<StatusRekomendasi>('Dalam Proses');
 
   // Quick Audio / Text Upload Form state inside Risalah
-  const [inputJenis, setInputJenis] = useState<'Rapat Paripurna' | 'Rapat Bamus' | 'Rapat Komisi' | 'Rapat Dengar Pendapat (RDP)'>('Rapat Paripurna');
+  const [inputJenis, setInputJenis] = useState<JenisRapat>('Rapat Paripurna');
   const [inputJudul, setInputJudul] = useState('');
   const [inputHariTanggal, setInputHariTanggal] = useState('');
   const [inputPimpinan, setInputPimpinan] = useState('');
@@ -355,12 +355,30 @@ export const PillarPersidangan: React.FC<Props> = ({
                   <select
                     value={inputJenis}
                     onChange={(e: any) => setInputJenis(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-emerald-500 font-semibold"
                   >
-                    <option value="Rapat Paripurna">Rapat Paripurna</option>
-                    <option value="Rapat Bamus">Rapat Bamus</option>
-                    <option value="Rapat Komisi">Rapat Komisi</option>
-                    <option value="Rapat Dengar Pendapat (RDP)">Rapat Dengar Pendapat (RDP)</option>
+                    <optgroup label="Rapat Paripurna & Musyawarah">
+                      <option value="Rapat Paripurna">Rapat Paripurna</option>
+                      <option value="Rapat Bamus">Rapat Bamus (Badan Musyawarah)</option>
+                      <option value="Rapat Dengar Pendapat (RDP)">Rapat Dengar Pendapat (RDP)</option>
+                    </optgroup>
+                    <optgroup label="Alat Kelengkapan Dewan (AKD)">
+                      <option value="Rapat Banggar">Rapat Banggar (Badan Anggaran)</option>
+                      <option value="Rapat BK">Rapat BK (Badan Kehormatan)</option>
+                      <option value="Rapat Bapemperda">Rapat Bapemperda</option>
+                    </optgroup>
+                    <optgroup label="Rapat Komisi DPRD Sulbar">
+                      <option value="Rapat Komisi I">Rapat Komisi I</option>
+                      <option value="Rapat Komisi II">Rapat Komisi II</option>
+                      <option value="Rapat Komisi III">Rapat Komisi III</option>
+                      <option value="Rapat Komisi IV">Rapat Komisi IV</option>
+                      <option value="Rapat Komisi">Rapat Komisi (Gabungan / Umum)</option>
+                    </optgroup>
+                    <optgroup label="Pimpinan & Sekretariat">
+                      <option value="Rapat Pimpinan">Rapat Pimpinan</option>
+                      <option value="Rapat Pimpinan di Perluas">Rapat Pimpinan di Perluas</option>
+                      <option value="Rapat Sekretariat DPRD">Rapat Sekretariat DPRD</option>
+                    </optgroup>
                   </select>
                 </div>
 

@@ -539,7 +539,7 @@ export const INITIAL_RISALAH: RisalahItem[] = [
     id: 'RSL-2026-0804',
     nomorRisalah: 'Risalah Komisi No. 11/KOM-IV/DPRD-SB/2026',
     judulRapat: 'Rapat Kerja Komisi IV Pengawasan Penyaluran Beasiswa Sulbar Cerdas TA 2026',
-    jenisRapat: 'Rapat Komisi',
+    jenisRapat: 'Rapat Komisi IV',
     hariTanggalWaktu: 'Kamis, 16 Juli 2026 | 09.00 - 11.45 WITA',
     pimpinanRapat: 'Ketua Komisi IV DPRD Sulbar',
     anggotaHadir: '8 Anggota Komisi IV & Kepala Dinas Pendidikan dan Kebudayaan',

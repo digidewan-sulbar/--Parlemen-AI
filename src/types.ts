@@ -84,11 +84,27 @@ export interface RisalahTrackingAuditLog {
   versiDokumen: string;
 }
 
+export type JenisRapat =
+  | 'Rapat Paripurna'
+  | 'Rapat Bamus'
+  | 'Rapat Banggar'
+  | 'Rapat BK'
+  | 'Rapat Bapemperda'
+  | 'Rapat Pimpinan'
+  | 'Rapat Pimpinan di Perluas'
+  | 'Rapat Sekretariat DPRD'
+  | 'Rapat Komisi I'
+  | 'Rapat Komisi II'
+  | 'Rapat Komisi III'
+  | 'Rapat Komisi IV'
+  | 'Rapat Komisi'
+  | 'Rapat Dengar Pendapat (RDP)';
+
 export interface RisalahItem {
   id: string;
   nomorRisalah: string;
   judulRapat: string;
-  jenisRapat: 'Rapat Paripurna' | 'Rapat Bamus' | 'Rapat Komisi' | 'Rapat Dengar Pendapat (RDP)';
+  jenisRapat: JenisRapat;
   hariTanggalWaktu: string;
   pimpinanRapat: string;
   anggotaHadir: string;

@@ -313,13 +313,31 @@ export const RisalahSmartSearch: React.FC<Props> = ({
               <select
                 value={selectedJenis}
                 onChange={(e) => setSelectedJenis(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs focus:outline-none focus:border-emerald-500"
+                className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs focus:outline-none focus:border-emerald-500 font-medium"
               >
                 <option value="SEMUA">Semua Jenis Rapat</option>
-                <option value="Rapat Paripurna">Rapat Paripurna</option>
-                <option value="Rapat Bamus">Rapat Bamus</option>
-                <option value="Rapat Komisi">Rapat Komisi</option>
-                <option value="Rapat Dengar Pendapat (RDP)">Rapat Dengar Pendapat (RDP)</option>
+                <optgroup label="Paripurna & Umum">
+                  <option value="Rapat Paripurna">Rapat Paripurna</option>
+                  <option value="Rapat Bamus">Rapat Bamus</option>
+                  <option value="Rapat Dengar Pendapat (RDP)">Rapat Dengar Pendapat (RDP)</option>
+                </optgroup>
+                <optgroup label="Alat Kelengkapan Dewan (AKD)">
+                  <option value="Rapat Banggar">Rapat Banggar</option>
+                  <option value="Rapat BK">Rapat BK</option>
+                  <option value="Rapat Bapemperda">Rapat Bapemperda</option>
+                </optgroup>
+                <optgroup label="Komisi I - IV">
+                  <option value="Rapat Komisi I">Rapat Komisi I</option>
+                  <option value="Rapat Komisi II">Rapat Komisi II</option>
+                  <option value="Rapat Komisi III">Rapat Komisi III</option>
+                  <option value="Rapat Komisi IV">Rapat Komisi IV</option>
+                  <option value="Rapat Komisi">Rapat Komisi (Umum)</option>
+                </optgroup>
+                <optgroup label="Pimpinan & Sekretariat">
+                  <option value="Rapat Pimpinan">Rapat Pimpinan</option>
+                  <option value="Rapat Pimpinan di Perluas">Rapat Pimpinan di Perluas</option>
+                  <option value="Rapat Sekretariat DPRD">Rapat Sekretariat DPRD</option>
+                </optgroup>
               </select>
             </div>
 

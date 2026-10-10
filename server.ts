@@ -67,7 +67,7 @@ app.get("/api/health", (req, res) => {
 app.post("/api/ai/process-all", async (req, res) => {
   try {
     const {
-      jenisRapat, // "Rapat Paripurna" | "Rapat Bamus" | "Rapat Komisi" | "Rapat Dengar Pendapat (RDP)"
+      jenisRapat, // "Rapat Paripurna" | "Rapat Bamus" | "Rapat Banggar" | "Rapat BK" | "Rapat Bapemperda" | "Rapat Pimpinan" | "Rapat Pimpinan di Perluas" | "Rapat Sekretariat DPRD" | "Rapat Komisi I" | "Rapat Komisi II" | "Rapat Komisi III" | "Rapat Komisi IV" | "Rapat Dengar Pendapat (RDP)"
       judulRapat,
       hariTanggalWaktu,
       pimpinanRapat,
