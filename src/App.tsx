@@ -13,6 +13,7 @@ import {
   NotificationPreferences,
   UserRole,
   AnggotaDprdItem,
+  AuthUser,
 } from './types';
 import {
   INITIAL_RANPERDA,
@@ -28,6 +29,8 @@ import {
   INITIAL_ANGGOTA_DPRD,
 } from './data/initialData';
 
+import { getStoredAuthUser, clearStoredAuthUser } from './utils/auth';
+import { LoginPage } from './components/LoginPage';
 import { HeaderNavbar } from './components/HeaderNavbar';
 import { PillarPersidangan } from './components/PillarPersidangan';
 import { PillarPimpinan } from './components/PillarPimpinan';
@@ -88,6 +91,14 @@ export default function App() {
   const [notifPreferences, setNotifPreferences] = useState<NotificationPreferences>(
     DEFAULT_NOTIFICATION_PREFERENCES
   );
+
+  // Authentication State
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => getStoredAuthUser());
+
+  const handleLogout = () => {
+    clearStoredAuthUser();
+    setCurrentUser(null);
+  };
 
   // Ctrl+K Shortcut for Smart Search
   useEffect(() => {
@@ -353,6 +364,10 @@ export default function App() {
         (notifPreferences.role.startsWith('OPD Terkait') && n.targetRole.startsWith('OPD Terkait')))
   ).length;
 
+  if (!currentUser) {
+    return <LoginPage onLoginSuccess={(user) => setCurrentUser(user)} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-emerald-500 selection:text-slate-950 relative overflow-x-hidden bg-grid-pattern">
       {/* Background Radial Glow Effects */}
@@ -376,6 +391,8 @@ export default function App() {
           onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
           onOpenGitDeploy={() => setIsGitDeployOpen(true)}
           userRole={notifPreferences.role}
+          currentUser={currentUser}
+          onLogout={handleLogout}
         />
 
         {/* Main Content Area */}

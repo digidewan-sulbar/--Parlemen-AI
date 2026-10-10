@@ -215,6 +215,20 @@ export interface AiProcessState {
 }
 
 // User Roles in E-Parlemen Sulbar
+export type AuthRole = 'admin' | 'kabag' | 'operator';
+
+export interface AuthUser {
+  username: string;
+  role: AuthRole;
+  fullName: string;
+  jabatan: string;
+  nip?: string;
+  levelAkses: number; // 1: admin, 2: kabag, 3: operator
+  avatarUrl?: string;
+  token?: string;
+  loginAt?: string;
+}
+
 export type UserRole =
   | 'Pimpinan DPRD'
   | 'Sekretariat DPRD'

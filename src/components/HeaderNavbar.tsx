@@ -1,5 +1,5 @@
-import React from 'react';
-import { PillarType, UserRole } from '../types';
+import React, { useState } from 'react';
+import { PillarType, UserRole, AuthUser } from '../types';
 import {
   FileText,
   UserCheck,
@@ -14,6 +14,9 @@ import {
   Users,
   Database,
   GitBranch,
+  LogOut,
+  UserCircle2,
+  ChevronDown,
 } from 'lucide-react';
 
 interface Props {
@@ -28,6 +31,8 @@ interface Props {
   onOpenSupabaseModal?: () => void;
   onOpenGitDeploy?: () => void;
   userRole: UserRole;
+  currentUser?: AuthUser | null;
+  onLogout?: () => void;
 }
 
 export const HeaderNavbar: React.FC<Props> = ({
@@ -42,7 +47,10 @@ export const HeaderNavbar: React.FC<Props> = ({
   onOpenSupabaseModal,
   onOpenGitDeploy,
   userRole,
+  currentUser,
+  onLogout,
 }) => {
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   return (
     <header className="bg-slate-950/95 text-white border-b border-slate-800/80 sticky top-0 z-40 shadow-2xl backdrop-blur-xl border-t-2 border-t-amber-500/90">
       {/* Top Govt Ribbon Bar */}
@@ -195,6 +203,123 @@ export const HeaderNavbar: React.FC<Props> = ({
             <Sparkles className="w-4 h-4 text-emerald-200 animate-spin" style={{ animationDuration: '4s' }} />
             <span>AI Core Engine</span>
           </button>
+
+          {/* Active User Account & Logout Menu */}
+          {currentUser && (
+            <div className="relative">
+              <button
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className={`bg-slate-900/95 hover:bg-slate-800 text-slate-200 text-xs px-3 py-2 rounded-xl border transition-all duration-200 flex items-center gap-2 shadow-lg active:scale-95 cursor-pointer ${
+                  currentUser.role === 'admin'
+                    ? 'border-emerald-500/50 hover:border-emerald-400'
+                    : currentUser.role === 'kabag'
+                    ? 'border-amber-500/50 hover:border-amber-400'
+                    : 'border-blue-500/50 hover:border-blue-400'
+                }`}
+                title={`Masuk sebagai: ${currentUser.fullName} (${currentUser.role})`}
+              >
+                <div
+                  className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-[11px] ${
+                    currentUser.role === 'admin'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                      : currentUser.role === 'kabag'
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                      : 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
+                  }`}
+                >
+                  {currentUser.role === 'admin' ? 'A' : currentUser.role === 'kabag' ? 'K' : 'O'}
+                </div>
+
+                <div className="text-left hidden sm:block">
+                  <div className="font-bold text-white leading-tight capitalize">
+                    {currentUser.username}
+                  </div>
+                  <div
+                    className={`text-[9px] font-semibold uppercase leading-tight ${
+                      currentUser.role === 'admin'
+                        ? 'text-emerald-400'
+                        : currentUser.role === 'kabag'
+                        ? 'text-amber-400'
+                        : 'text-blue-400'
+                    }`}
+                  >
+                    Level {currentUser.levelAkses}: {currentUser.role}
+                  </div>
+                </div>
+
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* User Menu Popover */}
+              {isUserMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setIsUserMenuOpen(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-72 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl shadow-black/80 z-50 p-4 backdrop-blur-xl animate-fadeIn">
+                    <div className="pb-3 border-b border-slate-800">
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 ${
+                            currentUser.role === 'admin'
+                              ? 'bg-emerald-950 text-emerald-300 border border-emerald-700/60'
+                              : currentUser.role === 'kabag'
+                              ? 'bg-amber-950 text-amber-300 border border-amber-700/60'
+                              : 'bg-blue-950 text-blue-300 border border-blue-700/60'
+                          }`}
+                        >
+                          {currentUser.username.substring(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-sm text-white truncate">
+                            {currentUser.fullName}
+                          </p>
+                          <p className="text-[11px] text-slate-400 truncate">
+                            {currentUser.jabatan}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-between text-[11px] bg-slate-950/70 p-2 rounded-xl border border-slate-800/80">
+                        <span className="text-slate-400 font-medium">Tingkat Otoritas:</span>
+                        <span
+                          className={`font-bold px-2 py-0.5 rounded text-[10px] ${
+                            currentUser.role === 'admin'
+                              ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                              : currentUser.role === 'kabag'
+                              ? 'bg-amber-950 text-amber-300 border border-amber-800'
+                              : 'bg-blue-950 text-blue-300 border border-blue-800'
+                          }`}
+                        >
+                          Level {currentUser.levelAkses} • {currentUser.role.toUpperCase()}
+                        </span>
+                      </div>
+
+                      {currentUser.nip && (
+                        <p className="mt-2 text-[10px] text-slate-500 font-mono">
+                          NIP: {currentUser.nip}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="pt-3">
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          if (onLogout) onLogout();
+                        }}
+                        className="w-full flex items-center justify-center gap-2 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-white border border-rose-500/40 hover:border-rose-400 py-2.5 px-3 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer shadow-sm group"
+                      >
+                        <LogOut className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+                        <span>Keluar / Logout</span>
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
 
         </div>
