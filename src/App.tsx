@@ -39,6 +39,7 @@ import { SmartSearchModal } from './components/SmartSearchModal';
 import { DprdDirectoryModal } from './components/DprdDirectoryModal';
 import { PejabatPemprovModal } from './components/PejabatPemprovModal';
 import { SupabaseDbModal } from './components/SupabaseDbModal';
+import { GitDeployModal } from './components/GitDeployModal';
 import {
   apiGetRisalah,
   apiSaveRisalah,
@@ -69,6 +70,7 @@ export default function App() {
   const [isDprdModalOpen, setIsDprdModalOpen] = useState<boolean>(false);
   const [isPejabatPemprovOpen, setIsPejabatPemprovOpen] = useState<boolean>(false);
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState<boolean>(false);
+  const [isGitDeployOpen, setIsGitDeployOpen] = useState<boolean>(false);
 
   // App Master Data States
   const [members, setMembers] = useState<AnggotaDprdItem[]>(INITIAL_ANGGOTA_DPRD);
@@ -372,6 +374,7 @@ export default function App() {
           onOpenDprdDirectory={() => setIsDprdModalOpen(true)}
           onOpenPejabatPemprov={() => setIsPejabatPemprovOpen(true)}
           onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
+          onOpenGitDeploy={() => setIsGitDeployOpen(true)}
           userRole={notifPreferences.role}
         />
 
@@ -485,6 +488,12 @@ export default function App() {
           isOpen={isSupabaseModalOpen}
           onClose={() => setIsSupabaseModalOpen(false)}
           onDataMutated={loadSupabaseData}
+        />
+
+        {/* Git Deployment to GitHub Modal */}
+        <GitDeployModal
+          isOpen={isGitDeployOpen}
+          onClose={() => setIsGitDeployOpen(false)}
         />
 
         {/* Executive Government Footer */}

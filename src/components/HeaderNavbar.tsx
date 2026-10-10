@@ -13,6 +13,7 @@ import {
   Search,
   Users,
   Database,
+  GitBranch,
 } from 'lucide-react';
 
 interface Props {
@@ -25,6 +26,7 @@ interface Props {
   onOpenDprdDirectory: () => void;
   onOpenPejabatPemprov?: () => void;
   onOpenSupabaseModal?: () => void;
+  onOpenGitDeploy?: () => void;
   userRole: UserRole;
 }
 
@@ -38,6 +40,7 @@ export const HeaderNavbar: React.FC<Props> = ({
   onOpenDprdDirectory,
   onOpenPejabatPemprov,
   onOpenSupabaseModal,
+  onOpenGitDeploy,
   userRole,
 }) => {
   return (
@@ -168,6 +171,21 @@ export const HeaderNavbar: React.FC<Props> = ({
               </span>
             )}
           </button>
+
+          {/* Git Deploy Trigger */}
+          {onOpenGitDeploy && (
+            <button
+              onClick={onOpenGitDeploy}
+              className="bg-slate-900/90 hover:bg-indigo-950/80 text-indigo-300 border border-indigo-700/60 hover:border-indigo-500/80 text-xs px-3 py-2.5 rounded-xl transition-all duration-200 flex items-center gap-1.5 shadow-lg shadow-indigo-950/40 active:scale-95 group"
+              title="Deploy Otomatis ke GitHub (--Parlemen-AI)"
+            >
+              <GitBranch className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition-transform" />
+              <span className="font-semibold">Deploy GitHub</span>
+              <span className="bg-indigo-500/20 text-indigo-300 text-[10px] px-1.5 py-0.5 rounded-md font-bold border border-indigo-500/30">
+                main
+              </span>
+            </button>
+          )}
 
           {/* AI Core Engine Drawer Trigger */}
           <button

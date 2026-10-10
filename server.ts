@@ -667,6 +667,72 @@ app.put("/api/notifications/read-all", async (req, res) => {
   }
 });
 
+// Git Deployment & Status API Endpoints
+app.get("/api/git/status", async (req, res) => {
+  try {
+    const { execSync } = await import("child_process");
+    let branch = "main";
+    let lastCommit = "";
+    let remoteUrl = "https://github.com/digidewan-sulbar/--Parlemen-AI.git";
+    try {
+      branch = execSync("git rev-parse --abbrev-ref HEAD", { encoding: "utf8" }).trim();
+    } catch {}
+    try {
+      lastCommit = execSync("git log -1 --pretty=format:'%h - %s (%cr)'", { encoding: "utf8" }).trim();
+    } catch {}
+    try {
+      remoteUrl = execSync("git remote get-url origin", { encoding: "utf8" }).trim();
+    } catch {}
+
+    return res.json({
+      success: true,
+      repository: remoteUrl,
+      branch,
+      lastCommit,
+      remoteConnected: true,
+      repoUrl: "https://github.com/digidewan-sulbar/--Parlemen-AI",
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post("/api/git/deploy", async (req, res) => {
+  try {
+    const { execSync } = await import("child_process");
+    const { token, commitMessage } = req.body;
+    const msg = commitMessage || `Auto deploy update ${new Date().toISOString()}`;
+
+    // Stage changes and commit if any uncommitted
+    try {
+      execSync("git add .", { encoding: "utf8" });
+      execSync(`git commit -m "${msg.replace(/"/g, '\\"')}"`, { encoding: "utf8" });
+    } catch (e) {
+      // Nothing to commit, continue
+    }
+
+    if (token) {
+      const cleanToken = token.trim();
+      const authenticatedRemote = `https://${cleanToken}@github.com/digidewan-sulbar/--Parlemen-AI.git`;
+      execSync(`git push "${authenticatedRemote}" main --force`, { encoding: "utf8" });
+      return res.json({
+        success: true,
+        message: "Berhasil deploy & push kode terbaru ke repository GitHub!",
+        repoUrl: "https://github.com/digidewan-sulbar/--Parlemen-AI",
+      });
+    } else {
+      return res.json({
+        success: false,
+        needToken: true,
+        message: "Perlu GitHub Personal Access Token (PAT) untuk otentikasi push ke repositori.",
+      });
+    }
+  } catch (error: any) {
+    console.error("Error POST /api/git/deploy:", error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 async function startServer() {
   // Mount Vite or static files first so HTTP server is ready immediately
   if (process.env.NODE_ENV !== "production") {
