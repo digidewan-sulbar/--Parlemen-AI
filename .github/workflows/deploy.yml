@@ -1,0 +1,48 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Build project (Client & Server)
+        run: npm run build
+
+      # Opsi Otomatis Deploy ke Hostinger via SSH / Webhook
+      # Jika menggunakan SSH Deploy Hostinger, aktifkan langkah berikut dengan mengisi Secrets di GitHub Repo (Settings > Secrets and variables > Actions):
+      # - HOSTINGER_HOST
+      # - HOSTINGER_USER
+      # - HOSTINGER_SSH_KEY
+      # - HOSTINGER_PORT (default 65002 untuk Hostinger)
+      #
+      # - name: Deploy to Hostinger via SSH
+      #   uses: appleboy/ssh-action@v1.0.3
+      #   with:
+      #     host: ${{ secrets.HOSTINGER_HOST }}
+      #     username: ${{ secrets.HOSTINGER_USER }}
+      #     key: ${{ secrets.HOSTINGER_SSH_KEY }}
+      #     port: ${{ secrets.HOSTINGER_PORT || 65002 }}
+      #     script: |
+      #       cd public_html || cd ~/domains/yourdomain.com/public_html
+      #       git pull origin main
+      #       npm install --production
+      #       npm run build
+      #       pm2 restart all || pm2 start ecosystem.config.cjs

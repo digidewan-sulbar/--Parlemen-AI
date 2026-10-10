@@ -1,0 +1,6 @@
+{
+  "name": "E-Parlemen Sulbar",
+  "description": "Sistem Informasi & AI Engine E-Parlemen Sekretariat DPRD Provinsi Sulawesi Barat - Trilogi Layanan Persidangan, Fasilitasi Pimpinan, dan Kehumasan SPBE",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
