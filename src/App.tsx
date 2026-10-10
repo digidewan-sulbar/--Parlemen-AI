@@ -43,6 +43,7 @@ import { DprdDirectoryModal } from './components/DprdDirectoryModal';
 import { PejabatPemprovModal } from './components/PejabatPemprovModal';
 import { SupabaseDbModal } from './components/SupabaseDbModal';
 import { GitDeployModal } from './components/GitDeployModal';
+import { BukuPanduanModal } from './components/BukuPanduanModal';
 import {
   apiGetRisalah,
   apiSaveRisalah,
@@ -74,6 +75,7 @@ export default function App() {
   const [isPejabatPemprovOpen, setIsPejabatPemprovOpen] = useState<boolean>(false);
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState<boolean>(false);
   const [isGitDeployOpen, setIsGitDeployOpen] = useState<boolean>(false);
+  const [isBukuPanduanOpen, setIsBukuPanduanOpen] = useState<boolean>(false);
 
   // App Master Data States
   const [members, setMembers] = useState<AnggotaDprdItem[]>(INITIAL_ANGGOTA_DPRD);
@@ -390,6 +392,7 @@ export default function App() {
           onOpenPejabatPemprov={() => setIsPejabatPemprovOpen(true)}
           onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
           onOpenGitDeploy={() => setIsGitDeployOpen(true)}
+          onOpenBukuPanduan={() => setIsBukuPanduanOpen(true)}
           userRole={notifPreferences.role}
           currentUser={currentUser}
           onLogout={handleLogout}
@@ -513,6 +516,12 @@ export default function App() {
           onClose={() => setIsGitDeployOpen(false)}
         />
 
+        {/* Buku Panduan & Manual E-Book Modal */}
+        <BukuPanduanModal
+          isOpen={isBukuPanduanOpen}
+          onClose={() => setIsBukuPanduanOpen(false)}
+        />
+
         {/* Executive Government Footer */}
         <footer className="border-t border-slate-900 bg-slate-950/90 backdrop-blur-md py-8 text-xs text-slate-400 mt-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
@@ -534,6 +543,12 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-2 flex-wrap justify-center">
+              <button
+                onClick={() => setIsBukuPanduanOpen(true)}
+                className="px-3.5 py-1.5 rounded-full border border-emerald-500/50 bg-emerald-950/70 text-emerald-300 hover:bg-emerald-900 text-[11px] font-semibold transition cursor-pointer flex items-center gap-1.5 shadow-sm shadow-emerald-950"
+              >
+                <span>Buku Panduan & E-Book (PDF)</span>
+              </button>
               <button
                 onClick={() => setActivePillar('spbe-blueprint')}
                 className={`px-3 py-1 rounded-full border text-[11px] font-semibold transition cursor-pointer flex items-center gap-1.5 ${

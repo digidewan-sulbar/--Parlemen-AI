@@ -17,6 +17,7 @@ import {
   LogOut,
   UserCircle2,
   ChevronDown,
+  BookOpen,
 } from 'lucide-react';
 
 interface Props {
@@ -30,6 +31,7 @@ interface Props {
   onOpenPejabatPemprov?: () => void;
   onOpenSupabaseModal?: () => void;
   onOpenGitDeploy?: () => void;
+  onOpenBukuPanduan?: () => void;
   userRole: UserRole;
   currentUser?: AuthUser | null;
   onLogout?: () => void;
@@ -46,6 +48,7 @@ export const HeaderNavbar: React.FC<Props> = ({
   onOpenPejabatPemprov,
   onOpenSupabaseModal,
   onOpenGitDeploy,
+  onOpenBukuPanduan,
   userRole,
   currentUser,
   onLogout,
@@ -191,6 +194,21 @@ export const HeaderNavbar: React.FC<Props> = ({
               <span className="font-semibold">Deploy GitHub</span>
               <span className="bg-indigo-500/20 text-indigo-300 text-[10px] px-1.5 py-0.5 rounded-md font-bold border border-indigo-500/30">
                 main
+              </span>
+            </button>
+          )}
+
+          {/* Buku Panduan & Manual E-Book Trigger */}
+          {onOpenBukuPanduan && (
+            <button
+              onClick={onOpenBukuPanduan}
+              className="bg-slate-900/90 hover:bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 hover:border-emerald-400 text-xs px-3 py-2.5 rounded-xl transition-all duration-200 flex items-center gap-1.5 shadow-lg shadow-emerald-950/40 active:scale-95 group cursor-pointer"
+              title="Buku Panduan & Manual E-Book Aplikasi (Format PDF & Baca Interaktif)"
+            >
+              <BookOpen className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
+              <span className="font-semibold">Buku Panduan</span>
+              <span className="bg-emerald-500/20 text-emerald-300 text-[10px] px-1.5 py-0.5 rounded-md font-bold border border-emerald-500/30">
+                PDF
               </span>
             </button>
           )}
