@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AnggotaDprdItem } from '../types';
+import { AnggotaDprdItem, AuthUser } from '../types';
 import { INITIAL_ANGGOTA_DPRD } from '../data/initialData';
 import {
   Users,
@@ -20,12 +20,15 @@ import {
   ShieldCheck,
   PhoneCall,
   User,
+  Lock,
+  Info,
 } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   members?: AnggotaDprdItem[];
+  currentUser?: AuthUser | null;
   onAddMember?: (newMember: AnggotaDprdItem) => void;
   onUpdateMember?: (updatedMember: AnggotaDprdItem) => void;
   onDeleteMember?: (id: string) => void;
@@ -36,6 +39,7 @@ export const DprdDirectoryModal: React.FC<Props> = ({
   isOpen,
   onClose,
   members: propMembers,
+  currentUser,
   onAddMember,
   onUpdateMember,
   onDeleteMember,
@@ -43,6 +47,9 @@ export const DprdDirectoryModal: React.FC<Props> = ({
 }) => {
   const [localMembers, setLocalMembers] = useState<AnggotaDprdItem[]>(INITIAL_ANGGOTA_DPRD);
   const activeMembers = propMembers || localMembers;
+
+  // Authorization check: only admin and kabag can add/edit/delete DPRD data
+  const canManage = currentUser?.role === 'admin' || currentUser?.role === 'kabag';
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterKategori, setFilterKategori] = useState<string>('SEMUA');
@@ -62,6 +69,7 @@ export const DprdDirectoryModal: React.FC<Props> = ({
   if (!isOpen) return null;
 
   const handleOpenAddForm = () => {
+    if (!canManage) return;
     setEditingMember(null);
     setFormNama('');
     setFormJabatan('Anggota Komisi I');
@@ -73,6 +81,7 @@ export const DprdDirectoryModal: React.FC<Props> = ({
   };
 
   const handleOpenEditForm = (member: AnggotaDprdItem) => {
+    if (!canManage) return;
     setEditingMember(member);
     setFormNama(member.nama);
     setFormJabatan(member.jabatan);
@@ -85,6 +94,10 @@ export const DprdDirectoryModal: React.FC<Props> = ({
 
   const handleSaveForm = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManage) {
+      alert('Akses Ditolak: Hanya Admin dan Kabag yang berwenang menambah atau mengubah data Anggota DPRD.');
+      return;
+    }
     if (!formNama.trim()) {
       alert('Nama anggota DPRD tidak boleh kosong.');
       return;
@@ -126,6 +139,10 @@ export const DprdDirectoryModal: React.FC<Props> = ({
   };
 
   const handleDelete = (id: string) => {
+    if (!canManage) {
+      alert('Akses Ditolak: Hanya Admin dan Kabag yang berwenang menghapus data Anggota DPRD.');
+      return;
+    }
     if (onDeleteMember) {
       onDeleteMember(id);
     } else {
@@ -348,13 +365,23 @@ export const DprdDirectoryModal: React.FC<Props> = ({
 
           {/* Action Buttons: Add, Print, Export */}
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleOpenAddForm}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 shadow-sm"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Tambah Anggota</span>
-            </button>
+            {canManage ? (
+              <button
+                onClick={handleOpenAddForm}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 shadow-sm"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Tambah Anggota</span>
+              </button>
+            ) : (
+              <div
+                className="bg-slate-950 border border-slate-800 text-slate-400 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 shadow-sm"
+                title="Akses terbatas: Hanya Admin dan Kabag yang dapat menambah atau mengedit data"
+              >
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-[11px] text-amber-300 font-semibold">Akses Terproteksi (Operator)</span>
+              </div>
+            )}
 
             <button
               onClick={handlePrint}
@@ -378,6 +405,19 @@ export const DprdDirectoryModal: React.FC<Props> = ({
 
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* Operator Notice Banner */}
+          {!canManage && (
+            <div className="bg-blue-950/40 border border-blue-800/60 rounded-xl p-3 text-xs text-blue-200 flex items-start gap-2.5">
+              <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-white">Mode Operator (Referensi Resmi Terproteksi)</p>
+                <p className="text-[11px] text-blue-300/90 mt-0.5">
+                  Sebagai Operator, Anda memiliki akses penuh untuk mencari, memilih pembicara aktif risalah, mencetak SK resmi DPRD, dan mengekspor CSV. Penambahan atau pengubahan data master anggota DPRD dibatasi khusus untuk akun <strong>Admin</strong> dan <strong>Kabag</strong>.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Form Create/Edit Panel */}
           {isFormOpen && (
             <form
@@ -619,20 +659,29 @@ export const DprdDirectoryModal: React.FC<Props> = ({
                                   <span>Pilih Pembicara</span>
                                 </button>
                               )}
-                              <button
-                                onClick={() => handleOpenEditForm(member)}
-                                className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded transition"
-                                title="Edit Data Anggota"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(member.id)}
-                                className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded transition"
-                                title="Hapus Data Anggota"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              {canManage ? (
+                                <>
+                                  <button
+                                    onClick={() => handleOpenEditForm(member)}
+                                    className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded transition"
+                                    title="Edit Data Anggota (Akses Admin & Kabag)"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDelete(member.id)}
+                                    className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded transition"
+                                    title="Hapus Data Anggota (Akses Admin & Kabag)"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </>
+                              ) : (
+                                <span className="text-[10px] text-slate-500 font-mono italic px-1 flex items-center gap-1">
+                                  <Lock className="w-2.5 h-2.5 opacity-60" />
+                                  <span>Terkunci</span>
+                                </span>
+                              )}
                             </div>
                           </td>
                         </tr>

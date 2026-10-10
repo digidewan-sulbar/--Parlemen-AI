@@ -5,6 +5,7 @@ import {
   RanperdaItem,
   RdpRecommendationItem,
   RisalahItem,
+  AuthUser,
 } from '../types';
 import { SentimentAnalysisSummary } from './SentimentAnalysisSummary';
 import { ExecutiveSummaryFormModal } from './forms/ExecutiveSummaryFormModal';
@@ -29,6 +30,9 @@ import {
   Plus,
   Edit,
   Trash2,
+  Lock,
+  ShieldCheck,
+  Info,
 } from 'lucide-react';
 
 interface Props {
@@ -37,6 +41,7 @@ interface Props {
   ranperdaList: RanperdaItem[];
   rdpRecommendations: RdpRecommendationItem[];
   risalahList: RisalahItem[];
+  currentUser?: AuthUser | null;
   onAddExecutiveSummary?: (item: ExecutiveSummaryItem) => void;
   onUpdateExecutiveSummary?: (item: ExecutiveSummaryItem) => void;
   onDeleteExecutiveSummary?: (id: string) => void;
@@ -52,6 +57,7 @@ export const PillarPimpinan: React.FC<Props> = ({
   ranperdaList,
   rdpRecommendations,
   risalahList,
+  currentUser,
   onAddExecutiveSummary,
   onUpdateExecutiveSummary,
   onDeleteExecutiveSummary,
@@ -60,6 +66,9 @@ export const PillarPimpinan: React.FC<Props> = ({
   onDeleteAgendaPimpinan,
   onOpenAiStudio,
 }) => {
+  // Authorization check: only admin and kabag can create/edit leader agendas & disposisi
+  const canDisposisi = currentUser?.role === 'admin' || currentUser?.role === 'kabag';
+
   const [selectedSummary, setSelectedSummary] = useState<ExecutiveSummaryItem | null>(
     executiveSummaries[0] || null
   );
@@ -299,17 +308,36 @@ export const PillarPimpinan: React.FC<Props> = ({
               </h3>
             </div>
 
-            <button
-              onClick={() => {
-                setEditingAgenda(null);
-                setIsAgendaModalOpen(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-500 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 transition shadow"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Tambah Agenda</span>
-            </button>
+            {canDisposisi ? (
+              <button
+                onClick={() => {
+                  setEditingAgenda(null);
+                  setIsAgendaModalOpen(true);
+                }}
+                className="bg-blue-600 hover:bg-blue-500 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 transition shadow"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Tambah Agenda & Disposisi</span>
+              </button>
+            ) : (
+              <div
+                className="flex items-center gap-1.5 bg-blue-950/60 border border-blue-800/60 text-blue-300 text-xs px-2.5 py-1 rounded-lg"
+                title="Hak Disposisi hanya dimiliki oleh akun Pimpinan, Kabag, dan Admin"
+              >
+                <Lock className="w-3.5 h-3.5 text-blue-400" />
+                <span className="text-[11px] font-semibold">Disposisi Pimpinan (Resmi)</span>
+              </div>
+            )}
           </div>
+
+          {!canDisposisi && (
+            <div className="bg-blue-950/30 border border-blue-800/50 rounded-xl p-2.5 text-[11px] text-blue-200 flex items-start gap-2">
+              <Info className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
+              <span>
+                <strong>Mode Tinjau Administratif Operator:</strong> Jadwal dan lembar disposisi pimpinan disajikan untuk koordinasi teknis dan fasilitasi keprotokolan. Penambahan agenda resmi dan pengesahan disposisi dibatasi khusus akun <strong>Admin</strong> dan <strong>Kabag</strong>.
+              </span>
+            </div>
+          )}
 
           <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1 scrollbar-thin">
             {agendaPimpinanList.map((agenda) => (
@@ -332,27 +360,36 @@ export const PillarPimpinan: React.FC<Props> = ({
                       {agenda.status}
                     </span>
 
-                    <button
-                      onClick={() => {
-                        setEditingAgenda(agenda);
-                        setIsAgendaModalOpen(true);
-                      }}
-                      className="p-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded transition border border-slate-700 ml-1"
-                      title="Edit Agenda"
-                    >
-                      <Edit className="w-3.5 h-3.5 text-blue-400" />
-                    </button>
+                    {canDisposisi ? (
+                      <>
+                        <button
+                          onClick={() => {
+                            setEditingAgenda(agenda);
+                            setIsAgendaModalOpen(true);
+                          }}
+                          className="p-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded transition border border-slate-700 ml-1"
+                          title="Edit Agenda & Disposisi"
+                        >
+                          <Edit className="w-3.5 h-3.5 text-blue-400" />
+                        </button>
 
-                    {onDeleteAgendaPimpinan && (
-                      <button
-                        onClick={() => {
-                          onDeleteAgendaPimpinan(agenda.id);
-                        }}
-                        className="p-1 bg-slate-800 hover:bg-red-950 text-red-400 rounded transition border border-slate-700 hover:border-red-500/50"
-                        title="Hapus Agenda"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                        {onDeleteAgendaPimpinan && (
+                          <button
+                            onClick={() => {
+                              onDeleteAgendaPimpinan(agenda.id);
+                            }}
+                            className="p-1 bg-slate-800 hover:bg-red-950 text-red-400 rounded transition border border-slate-700 hover:border-red-500/50"
+                            title="Hapus Agenda"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-[10px] text-slate-500 font-mono italic px-1 flex items-center gap-1">
+                        <ShieldCheck className="w-2.5 h-2.5 text-blue-400" />
+                        <span>Sah</span>
+                      </span>
                     )}
                   </div>
                 </div>

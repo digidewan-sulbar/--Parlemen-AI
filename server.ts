@@ -366,8 +366,19 @@ ${prompt}`,
 });
 
 // =========================================================================
-// SUPABASE DATABASE ENDPOINTS
+// SUPABASE DATABASE ENDPOINTS (STRICTLY LEVEL 1: ADMIN ONLY)
 // =========================================================================
+
+app.use("/api/supabase", (req, res, next) => {
+  const userRole = req.headers["x-user-role"];
+  if (userRole && userRole !== "admin") {
+    return res.status(403).json({
+      success: false,
+      error: "Akses Ditolak: Fitur Supabase DB hanya dapat diakses oleh akun Administrator.",
+    });
+  }
+  next();
+});
 
 // Status & Health Endpoint
 app.get("/api/supabase/status", async (req, res) => {
@@ -543,6 +554,20 @@ app.delete("/api/rdp/:id", async (req, res) => {
 });
 
 // Agenda Pimpinan CRUD
+// Agenda Pimpinan & Disposisi CRUD (Level 1: Admin & Level 2: Kabag)
+app.use("/api/agenda", (req, res, next) => {
+  if (req.method !== "GET") {
+    const userRole = req.headers["x-user-role"];
+    if (userRole === "operator") {
+      return res.status(403).json({
+        success: false,
+        error: "Akses Ditolak: Hanya Admin dan Kabag yang berwenang menambah, mengedit, atau mendisposisi agenda pimpinan.",
+      });
+    }
+  }
+  next();
+});
+
 app.get("/api/agenda", async (req, res) => {
   try {
     const data = await dbGetAllAgenda();
@@ -584,7 +609,20 @@ app.delete("/api/agenda/:id", async (req, res) => {
   }
 });
 
-// Anggota DPRD CRUD
+// Anggota DPRD CRUD (Level 1: Admin & Level 2: Kabag)
+app.use("/api/anggota-dprd", (req, res, next) => {
+  if (req.method !== "GET") {
+    const userRole = req.headers["x-user-role"];
+    if (userRole === "operator") {
+      return res.status(403).json({
+        success: false,
+        error: "Akses Ditolak: Hanya Admin dan Kabag yang berwenang menambah, mengedit, atau menghapus data Anggota DPRD.",
+      });
+    }
+  }
+  next();
+});
+
 app.get("/api/anggota-dprd", async (req, res) => {
   try {
     const data = await dbGetAllAnggota();
@@ -667,7 +705,18 @@ app.put("/api/notifications/read-all", async (req, res) => {
   }
 });
 
-// Git Deployment & Status API Endpoints
+// Git Deployment & Status API Endpoints (STRICTLY LEVEL 1: ADMIN ONLY)
+app.use("/api/git", (req, res, next) => {
+  const userRole = req.headers["x-user-role"];
+  if (userRole && userRole !== "admin") {
+    return res.status(403).json({
+      success: false,
+      error: "Akses Ditolak: Fitur deploy GitHub hanya dapat diakses oleh akun Administrator.",
+    });
+  }
+  next();
+});
+
 app.get("/api/git/status", async (req, res) => {
   try {
     const { execSync } = await import("child_process");

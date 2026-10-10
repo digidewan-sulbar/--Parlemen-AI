@@ -73,18 +73,24 @@ export const HeaderNavbar: React.FC<Props> = ({
           </span>
         </div>
 
-        {/* Supabase PostgreSQL Status Indicator in Top Ribbon */}
-        {onOpenSupabaseModal && (
+        {/* Supabase PostgreSQL Status Indicator in Top Ribbon - ONLY FOR ADMIN */}
+        {currentUser?.role === 'admin' && onOpenSupabaseModal ? (
           <button
             onClick={onOpenSupabaseModal}
             className="flex items-center gap-2 bg-emerald-950/80 hover:bg-emerald-900/90 text-emerald-300 border border-emerald-500/40 px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-all shadow-sm group cursor-pointer"
-            title="Database Supabase Terhubung - Klik untuk rincian & status tabel"
+            title="Database Supabase Terhubung - Khusus Admin (Klik untuk rincian & status tabel)"
           >
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             <span className="font-mono text-[10px] text-emerald-200">Supabase:</span>
             <span className="font-semibold text-white">PostgreSQL 17 Terhubung</span>
             <Database className="w-3 h-3 text-emerald-400 group-hover:rotate-12 transition-transform" />
           </button>
+        ) : (
+          <div className="flex items-center gap-1.5 bg-slate-900/80 text-slate-300 border border-slate-800 px-2.5 py-0.5 rounded-full text-[11px] font-medium">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="text-[10px] text-slate-400 font-mono">Server SPBE:</span>
+            <span className="font-semibold text-emerald-300">Aktif & Aman</span>
+          </div>
         )}
       </div>
 
@@ -149,12 +155,12 @@ export const HeaderNavbar: React.FC<Props> = ({
             </button>
           )}
 
-          {/* Supabase DB Management Modal Trigger */}
-          {onOpenSupabaseModal && (
+          {/* Supabase DB Management Modal Trigger - STRICTLY ADMIN ONLY */}
+          {currentUser?.role === 'admin' && onOpenSupabaseModal && (
             <button
               onClick={onOpenSupabaseModal}
               className="bg-slate-900/90 hover:bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 hover:border-emerald-400 text-xs px-3 py-2.5 rounded-xl transition-all duration-200 flex items-center gap-1.5 shadow-lg shadow-emerald-950/40 active:scale-95 group"
-              title="Kelola & Pantau Database Supabase PostgreSQL"
+              title="Kelola & Pantau Database Supabase PostgreSQL (Akses Khusus Admin)"
             >
               <Database className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
               <span className="font-semibold hidden sm:inline">Supabase DB</span>
@@ -183,12 +189,12 @@ export const HeaderNavbar: React.FC<Props> = ({
             )}
           </button>
 
-          {/* Git Deploy Trigger */}
-          {onOpenGitDeploy && (
+          {/* Git Deploy Trigger - STRICTLY ADMIN ONLY */}
+          {currentUser?.role === 'admin' && onOpenGitDeploy && (
             <button
               onClick={onOpenGitDeploy}
               className="bg-slate-900/90 hover:bg-indigo-950/80 text-indigo-300 border border-indigo-700/60 hover:border-indigo-500/80 text-xs px-3 py-2.5 rounded-xl transition-all duration-200 flex items-center gap-1.5 shadow-lg shadow-indigo-950/40 active:scale-95 group"
-              title="Deploy Otomatis ke GitHub (--Parlemen-AI)"
+              title="Deploy Otomatis ke GitHub (--Parlemen-AI) (Akses Khusus Admin)"
             >
               <GitBranch className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition-transform" />
               <span className="font-semibold">Deploy GitHub</span>

@@ -92,13 +92,13 @@ const CHAPTERS: Chapter[] = [
     readTime: '4 Menit',
     sections: [
       {
-        heading: '2.1 Tiga Level Hak Akses Pengguna',
+        heading: '2.1 Tiga Level Hak Akses Pengguna & Matriks Wewenang',
         description:
-          'Aplikasi dirancang dengan sistem Role-Based Access Control (RBAC) yang ketat guna memastikan setiap pejabat dan operator menjalankan tugas sesuai tugas pokok dan fungsinya:',
+          'Aplikasi dirancang dengan sistem Role-Based Access Control (RBAC) yang ketat guna memastikan pembagian wewenang yang aman, tertib administrasi, dan sesuai tata kelola:',
         roleAccess: [
-          'Level 1: Administrator (User: admin | Pass: admin.321) — Memiliki kendali menyeluruh atas konfigurasi sistem, database Supabase PostgreSQL, sinkronisasi deploy GitHub, manajemen 45 anggota dewan dan pejabat OPD, serta perbaikan data error.',
-          'Level 2: Kepala Bagian / Kabag (User: kabag | Pass: kabag.321) — Berwenang memvalidasi risalah rapat sebelum dipublikasikan, memantau batas waktu SLA Ranperda, mengesahkan rekomendasi RDP, mengelola agenda pimpinan, dan menyetujui rilis pers humas.',
-          'Level 3: Operator Sidang (User: operator | Pass: op.321) — Berperan langsung di ruang sidang untuk merekam audio rapat, mengunggah rekaman suara, menjalankan transkripsi AI, memeriksa keabsahan teks notulensi, dan menginput dokumen hasil sidang.',
+          'Level 1: Administrator (User: admin | Pass: admin.321) — SATU-SATUNYA LEVEL yang dapat melihat & mengakses: Supabase DB, Deploy GitHub, dan Integrasi Database Supabase PostgreSQL. Berwenang penuh atas manajemen Pejabat Pemprov, Pimpinan & Anggota DPRD, serta otentikasi/disposisi.',
+          'Level 2: Kepala Bagian / Kabag (User: kabag | Pass: kabag.321) — Berwenang menambah dan mengedit data Pejabat, Pimpinan dan Anggota DPRD, serta mengotentikasi/mendisposisi pekerjaan (Paraf Risalah, Verifikasi Rekomendasi RDP, Disposisi Agenda Pimpinan). Menu teknis database dan deploy GitHub disembunyikan.',
+          'Level 3: Operator (User: operator | Pass: op.321) — Khusus mengerjakan hal-hal teknis dan bersifat administratif: membuat risalah rapat, transkripsi suara-ke-teks AI, edit draf risalah, pembuatan rilis berita kehumasan, pencatatan bukti fisik OPD, cetak naskah & ekspor CSV. Dibatasi dari pengubahan master data Pejabat/DPRD, otentikasi/disposisi, dan akses database.',
         ],
       },
       {
@@ -301,15 +301,15 @@ const CHAPTERS: Chapter[] = [
     readTime: '4 Menit',
     sections: [
       {
-        heading: '8.1 Database Supabase PostgreSQL 17',
+        heading: '8.1 Database Supabase PostgreSQL 17 (Khusus Administrator)',
         description:
-          'Data aplikasi disimpan secara terpusat pada Supabase PostgreSQL 17. Pengaturan koneksi tersimpan aman di server dan dapat dipantau melalui tombol "Supabase DB" di navigasi atas.',
-        tips: 'Klik "Sinkronkan Ulang Data" di modal Supabase DB untuk menarik pembaruan terkini jika terjadi kendala jaringan.',
+          'Data aplikasi disimpan secara terpusat pada Supabase PostgreSQL 17. Sesuai hak akses RBAC, fitur "Supabase DB" dan integrasi database PostgreSQL HANYA dapat dilihat dan diakses oleh akun level 1 Administrator. Akun Kabag dan Operator tidak memiliki akses ke menu infrastruktur ini.',
+        tips: 'Administrator dapat mengklik "Supabase DB" di navigasi atas untuk memeriksa statistik tabel dan mengklik "Sinkronkan Ulang Data" bila diperlukan.',
       },
       {
-        heading: '8.2 Deploy Otomatis ke GitHub (--Parlemen-AI)',
+        heading: '8.2 Deploy Otomatis ke GitHub (--Parlemen-AI) (Khusus Administrator)',
         description:
-          'Setiap pembaruan fitur dapat langsung dideploy ke repositori GitHub resmi https://github.com/digidewan-sulbar/--Parlemen-AI pada branch main melalui tombol "Deploy GitHub".',
+          'Setiap pembaruan fitur dapat langsung dideploy ke repositori GitHub resmi https://github.com/digidewan-sulbar/--Parlemen-AI pada branch main melalui tombol "Deploy GitHub". Tombol dan modal ini secara eksklusif hanya terbuka untuk akun level 1 Administrator.',
       },
       {
         heading: '8.3 Pertanyaan Sering Diajukan (FAQ & Solusi Masalah)',

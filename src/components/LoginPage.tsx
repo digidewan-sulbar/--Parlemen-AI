@@ -265,34 +265,43 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             <div className="mt-8 pt-6 border-t border-slate-800/80">
               <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                Matriks Hak Akses Pengguna
+                Matriks Hak Akses Pengguna Resmi (RBAC)
               </h2>
 
-              <div className="space-y-2 text-xs">
-                <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/60 flex items-start gap-2.5">
-                  <span className="bg-emerald-950 text-emerald-300 font-bold px-2 py-0.5 rounded text-[10px] border border-emerald-800/60 shrink-0">
+              <div className="space-y-2.5 text-xs">
+                <div className="bg-slate-950/70 p-3 rounded-xl border border-emerald-900/60 flex items-start gap-3">
+                  <span className="bg-emerald-950 text-emerald-300 font-bold px-2 py-0.5 rounded text-[10px] border border-emerald-800/80 shrink-0">
                     1. Admin
                   </span>
                   <div className="text-[11px] text-slate-300">
-                    <span className="font-semibold text-white">Administrator IT:</span> Akses penuh seluruh pilar, integrasi Supabase PostgreSQL, deploy Git/GitHub, dan manajemen master data.
+                    <p className="font-semibold text-white">Khusus Administrator IT & Basis Data:</p>
+                    <p className="text-slate-400 mt-0.5">
+                      Satu-satunya level yang dapat melihat & mengakses: <strong>Supabase DB</strong>, <strong>Deploy GitHub</strong>, dan <strong>Integrasi Database PostgreSQL</strong>. Serta berwenang penuh atas data master dan otentikasi.
+                    </p>
                   </div>
                 </div>
 
-                <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/60 flex items-start gap-2.5">
-                  <span className="bg-amber-950 text-amber-300 font-bold px-2 py-0.5 rounded text-[10px] border border-amber-800/60 shrink-0">
+                <div className="bg-slate-950/70 p-3 rounded-xl border border-amber-900/60 flex items-start gap-3">
+                  <span className="bg-amber-950 text-amber-300 font-bold px-2 py-0.5 rounded text-[10px] border border-amber-800/80 shrink-0">
                     2. Kabag
                   </span>
                   <div className="text-[11px] text-slate-300">
-                    <span className="font-semibold text-white">Kepala Bagian:</span> Fasilitasi pimpinan, telaah eksekutif, verifikasi naskah risalah persidangan & pengawasan disposisi.
+                    <p className="font-semibold text-white">Kepala Bagian Persidangan & Pimpinan:</p>
+                    <p className="text-slate-400 mt-0.5">
+                      Berwenang menambah & mengedit data <strong>Pejabat Pemprov</strong>, <strong>Pimpinan & Anggota DPRD</strong>, serta <strong>mengotentikasi paraf risalah & mendisposisi agenda</strong>. (Fitur DB & Deploy GitHub disembunyikan).
+                    </p>
                   </div>
                 </div>
 
-                <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/60 flex items-start gap-2.5">
+                <div className="bg-slate-950/70 p-3 rounded-xl border border-blue-900/60 flex items-start gap-3">
                   <span className="bg-blue-950 text-blue-300 font-bold px-2 py-0.5 rounded text-[10px] border border-blue-800/60 shrink-0">
                     3. Operator
                   </span>
                   <div className="text-[11px] text-slate-300">
-                    <span className="font-semibold text-white">Operator Teknis:</span> Entri data risalah rapat, transkripsi audio AI, pemantauan rekomendasi RDP OPD, serta pelaporan kehumasan.
+                    <p className="font-semibold text-white">Staf Operator Administrasi & Teknis:</p>
+                    <p className="text-slate-400 mt-0.5">
+                      Mengerjakan tugas administratif & teknis: <strong>membuat risalah rapat, transkripsi AI, edit draft naskah, rilis berita humas, input berkas, dan cetak PDF</strong>. Dibatasi dari pengubahan master data Pejabat/DPRD, otentikasi/disposisi, dan database.
+                    </p>
                   </div>
                 </div>
               </div>

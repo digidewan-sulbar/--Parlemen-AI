@@ -6,6 +6,16 @@ import {
   AnggotaDprdItem,
   NotificationItem,
 } from '../types';
+import { getStoredAuthUser } from './auth';
+
+function getAuthHeaders(): Record<string, string> {
+  const user = getStoredAuthUser();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (user?.role) {
+    headers['x-user-role'] = user.role;
+  }
+  return headers;
+}
 
 export interface SupabaseStatusResponse {
   success: boolean;
@@ -34,7 +44,9 @@ export interface SupabaseStatusResponse {
 
 export async function checkSupabaseStatus(): Promise<SupabaseStatusResponse> {
   try {
-    const res = await fetch('/api/supabase/status');
+    const res = await fetch('/api/supabase/status', {
+      headers: getAuthHeaders(),
+    });
     const json = await res.json();
     return json;
   } catch (err: any) {
@@ -48,7 +60,10 @@ export async function checkSupabaseStatus(): Promise<SupabaseStatusResponse> {
 }
 
 export async function reseedSupabaseDatabase(): Promise<{ success: boolean; message?: string; stats?: any }> {
-  const res = await fetch('/api/supabase/seed-reset', { method: 'POST' });
+  const res = await fetch('/api/supabase/seed-reset', {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
   return await res.json();
 }
 
@@ -182,7 +197,7 @@ export async function apiSaveAgenda(item: AgendaPimpinanItem): Promise<boolean> 
   try {
     const res = await fetch('/api/agenda', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(item),
     });
     const json = await res.json();
@@ -196,6 +211,7 @@ export async function apiDeleteAgenda(id: string): Promise<boolean> {
   try {
     const res = await fetch(`/api/agenda/${encodeURIComponent(id)}`, {
       method: 'DELETE',
+      headers: getAuthHeaders(),
     });
     const json = await res.json();
     return !!json.success;
@@ -220,7 +236,7 @@ export async function apiSaveAnggota(item: AnggotaDprdItem): Promise<boolean> {
   try {
     const res = await fetch('/api/anggota-dprd', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(item),
     });
     const json = await res.json();
@@ -234,6 +250,7 @@ export async function apiDeleteAnggota(id: string): Promise<boolean> {
   try {
     const res = await fetch(`/api/anggota-dprd/${encodeURIComponent(id)}`, {
       method: 'DELETE',
+      headers: getAuthHeaders(),
     });
     const json = await res.json();
     return !!json.success;

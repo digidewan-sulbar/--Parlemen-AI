@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RanperdaItem, RisalahItem, RdpRecommendationItem, StatusRekomendasi, JenisRapat } from '../types';
+import { RanperdaItem, RisalahItem, RdpRecommendationItem, StatusRekomendasi, JenisRapat, AuthUser } from '../types';
 import { SentimentAnalysisSummary } from './SentimentAnalysisSummary';
 import { RanperdaFormModal } from './forms/RanperdaFormModal';
 import { RisalahFormModal } from './forms/RisalahFormModal';
@@ -48,6 +48,7 @@ interface Props {
   ranperdaList: RanperdaItem[];
   risalahList: RisalahItem[];
   rdpRecommendations: RdpRecommendationItem[];
+  currentUser?: AuthUser | null;
   onAddRisalah: (newRisalah: RisalahItem) => void;
   onUpdateRisalah?: (updatedRisalah: RisalahItem) => void;
   onDeleteRisalah?: (id: string) => void;
@@ -65,6 +66,7 @@ export const PillarPersidangan: React.FC<Props> = ({
   ranperdaList,
   risalahList,
   rdpRecommendations,
+  currentUser,
   onAddRisalah,
   onUpdateRisalah,
   onDeleteRisalah,
@@ -1090,6 +1092,7 @@ export const PillarPersidangan: React.FC<Props> = ({
           setTrackingTargetRisalah(null);
         }}
         risalah={trackingTargetRisalah}
+        currentUser={currentUser}
         onUpdateRisalah={(updated) => {
           if (onUpdateRisalah) onUpdateRisalah(updated);
           if (selectedRisalah?.id === updated.id) {

@@ -405,6 +405,7 @@ export default function App() {
               ranperdaList={ranperdaList}
               risalahList={risalahList}
               rdpRecommendations={rdpRecommendations}
+              currentUser={currentUser}
               onAddRisalah={handleAddRisalah}
               onUpdateRisalah={handleUpdateRisalah}
               onDeleteRisalah={handleDeleteRisalah}
@@ -426,6 +427,7 @@ export default function App() {
               ranperdaList={ranperdaList}
               rdpRecommendations={rdpRecommendations}
               risalahList={risalahList}
+              currentUser={currentUser}
               onAddExecutiveSummary={handleAddExecutiveSummary}
               onUpdateExecutiveSummary={handleUpdateExecutiveSummary}
               onDeleteExecutiveSummary={handleDeleteExecutiveSummary}
@@ -492,6 +494,7 @@ export default function App() {
           isOpen={isDprdModalOpen}
           onClose={() => setIsDprdModalOpen(false)}
           members={members}
+          currentUser={currentUser}
           onAddMember={handleAddMember}
           onUpdateMember={handleUpdateMember}
           onDeleteMember={handleDeleteMember}
@@ -501,20 +504,25 @@ export default function App() {
         <PejabatPemprovModal
           isOpen={isPejabatPemprovOpen}
           onClose={() => setIsPejabatPemprovOpen(false)}
+          currentUser={currentUser}
         />
 
-        {/* Supabase PostgreSQL Database Management & Monitoring Modal */}
-        <SupabaseDbModal
-          isOpen={isSupabaseModalOpen}
-          onClose={() => setIsSupabaseModalOpen(false)}
-          onDataMutated={loadSupabaseData}
-        />
+        {/* Supabase PostgreSQL Database Management & Monitoring Modal - STRICTLY ADMIN ONLY */}
+        {currentUser?.role === 'admin' && (
+          <SupabaseDbModal
+            isOpen={isSupabaseModalOpen}
+            onClose={() => setIsSupabaseModalOpen(false)}
+            onDataMutated={loadSupabaseData}
+          />
+        )}
 
-        {/* Git Deployment to GitHub Modal */}
-        <GitDeployModal
-          isOpen={isGitDeployOpen}
-          onClose={() => setIsGitDeployOpen(false)}
-        />
+        {/* Git Deployment to GitHub Modal - STRICTLY ADMIN ONLY */}
+        {currentUser?.role === 'admin' && (
+          <GitDeployModal
+            isOpen={isGitDeployOpen}
+            onClose={() => setIsGitDeployOpen(false)}
+          />
+        )}
 
         {/* Buku Panduan & Manual E-Book Modal */}
         <BukuPanduanModal

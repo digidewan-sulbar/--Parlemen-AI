@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { PejabatPemprovItem, PEJABAT_PEMPROV_SULBAR_2026 } from '../data/pejabatPemprovData';
+import { AuthUser } from '../types';
 import {
   X,
   Search,
@@ -20,23 +21,30 @@ import {
   PhoneCall,
   MessageSquare,
   ExternalLink,
+  Lock,
+  Info,
 } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  currentUser?: AuthUser | null;
   onSelectSpeaker?: (nama: string, jabatan: string) => void;
 }
 
 export const PejabatPemprovModal: React.FC<Props> = ({
   isOpen,
   onClose,
+  currentUser,
   onSelectSpeaker,
 }) => {
   const [dataPejabat, setDataPejabat] = useState<PejabatPemprovItem[]>(PEJABAT_PEMPROV_SULBAR_2026);
   const [activeCategory, setActiveCategory] = useState<'all' | 'pimpinan' | 'asisten' | 'biro' | 'opd'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Authorization check: only admin and kabag can add/edit/delete Pejabat Pemprov
+  const canManage = currentUser?.role === 'admin' || currentUser?.role === 'kabag';
 
   // Form State for Adding / Editing
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -67,6 +75,10 @@ export const PejabatPemprovModal: React.FC<Props> = ({
   // Handle Save (Add or Edit)
   const handleSaveForm = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManage) {
+      alert('Akses Ditolak: Hanya Admin dan Kabag yang berwenang menambah atau mengedit data Pejabat Pemprov.');
+      return;
+    }
     if (!formNama.trim() || !formJabatan.trim()) return;
 
     if (editingId) {
@@ -106,6 +118,7 @@ export const PejabatPemprovModal: React.FC<Props> = ({
   };
 
   const startEdit = (item: PejabatPemprovItem) => {
+    if (!canManage) return;
     setEditingId(item.id);
     setFormNama(item.nama);
     setFormJabatan(item.jabatan);
@@ -132,6 +145,10 @@ export const PejabatPemprovModal: React.FC<Props> = ({
   };
 
   const handleDelete = (id: string) => {
+    if (!canManage) {
+      alert('Akses Ditolak: Hanya Admin dan Kabag yang berwenang menghapus data Pejabat Pemprov.');
+      return;
+    }
     setDataPejabat((prev) => prev.filter((item) => item.id !== id));
   };
 
@@ -258,20 +275,30 @@ export const PejabatPemprovModal: React.FC<Props> = ({
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <button
-              onClick={() => {
-                if (isFormOpen && !editingId) {
-                  resetForm();
-                } else {
-                  resetForm();
-                  setIsFormOpen(true);
-                }
-              }}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition shadow flex items-center gap-1.5"
-            >
-              <Plus className="w-4 h-4" />
-              <span>+ Tambah Pejabat Baru</span>
-            </button>
+            {canManage ? (
+              <button
+                onClick={() => {
+                  if (isFormOpen && !editingId) {
+                    resetForm();
+                  } else {
+                    resetForm();
+                    setIsFormOpen(true);
+                  }
+                }}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition shadow flex items-center gap-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Tambah Pejabat Baru</span>
+              </button>
+            ) : (
+              <div
+                className="bg-slate-950 border border-slate-800 text-slate-400 px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 shadow"
+                title="Akses terbatas: Hanya Admin dan Kabag yang dapat menambah atau mengedit data"
+              >
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-[11px] text-amber-300 font-semibold">Akses Terproteksi (Operator)</span>
+              </div>
+            )}
 
             <button
               onClick={handlePrint}
@@ -340,6 +367,19 @@ export const PejabatPemprovModal: React.FC<Props> = ({
 
         {/* Modal Body */}
         <div className="p-4 overflow-y-auto space-y-4 flex-1">
+          {/* Operator Notice Banner */}
+          {!canManage && (
+            <div className="bg-amber-950/30 border border-amber-800/60 rounded-xl p-3 text-xs text-amber-200 flex items-start gap-2.5">
+              <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-white">Mode Operator (Referensi Resmi Pejabat Terproteksi)</p>
+                <p className="text-[11px] text-amber-300/90 mt-0.5">
+                  Sebagai Operator, Anda memiliki akses penuh untuk mencari profil pejabat, menyalin data instansi, menghubungi nomor WhatsApp resmi, dan memilih narasumber rapat. Penambahan atau pengubahan data master pejabat dibatasi khusus untuk akun <strong>Admin</strong> dan <strong>Kabag</strong>.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* FORM INPUT / EDIT DATA */}
           {isFormOpen && (
             <form
@@ -606,22 +646,29 @@ export const PejabatPemprovModal: React.FC<Props> = ({
                       )}
                     </div>
 
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => startEdit(item)}
-                        className="p-1 text-slate-400 hover:text-amber-400 hover:bg-slate-900 rounded transition"
-                        title="Edit Data Pejabat"
-                      >
-                        <Edit className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        className="p-1 text-slate-500 hover:text-red-400 hover:bg-slate-900 rounded transition"
-                        title="Hapus Data Pejabat"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                    {canManage ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => startEdit(item)}
+                          className="p-1 text-slate-400 hover:text-amber-400 hover:bg-slate-900 rounded transition"
+                          title="Edit Data Pejabat (Akses Admin & Kabag)"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          className="p-1 text-slate-500 hover:text-red-400 hover:bg-slate-900 rounded transition"
+                          title="Hapus Data Pejabat (Akses Admin & Kabag)"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-[10px] text-slate-500 font-mono italic px-1 flex items-center gap-1">
+                        <Lock className="w-2.5 h-2.5 opacity-60" />
+                        <span>Terverifikasi</span>
+                      </span>
+                    )}
                   </div>
                 </div>
               );
