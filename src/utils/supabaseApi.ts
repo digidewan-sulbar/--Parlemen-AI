@@ -308,3 +308,132 @@ export async function apiMarkAllNotificationsRead(): Promise<boolean> {
     return false;
   }
 }
+
+// ----------------- Press Releases -----------------
+export async function apiGetPress(): Promise<any[] | null> {
+  try {
+    const res = await fetch('/api/press');
+    const json = await res.json();
+    if (json.success && Array.isArray(json.data)) return json.data;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function apiSavePress(item: any): Promise<boolean> {
+  try {
+    const res = await fetch('/api/press', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(item),
+    });
+    const json = await res.json();
+    return !!json.success;
+  } catch {
+    return false;
+  }
+}
+
+export async function apiDeletePress(id: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/press/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+    const json = await res.json();
+    return !!json.success;
+  } catch {
+    return false;
+  }
+}
+
+// ----------------- Protocol Briefing Sheets -----------------
+export async function apiGetProtocol(): Promise<any[] | null> {
+  try {
+    const res = await fetch('/api/protocol');
+    const json = await res.json();
+    if (json.success && Array.isArray(json.data)) return json.data;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function apiSaveProtocol(item: any): Promise<boolean> {
+  try {
+    const res = await fetch('/api/protocol', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(item),
+    });
+    const json = await res.json();
+    return !!json.success;
+  } catch {
+    return false;
+  }
+}
+
+export async function apiDeleteProtocol(id: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/protocol/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+    const json = await res.json();
+    return !!json.success;
+  } catch {
+    return false;
+  }
+}
+
+// ----------------- AI Bakuisasi & Transkripsi Audio -----------------
+export async function apiRefineTranscriptBaku(
+  transcriptText: string,
+  meta?: { judulRapat?: string; jenisRapat?: string }
+): Promise<{ success: boolean; refinedTranscript: string; message?: string }> {
+  try {
+    const res = await fetch('/api/ai/refine-transcript', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        transcriptText,
+        judulRapat: meta?.judulRapat,
+        jenisRapat: meta?.jenisRapat,
+      }),
+    });
+    const json = await res.json();
+    return json;
+  } catch (err: any) {
+    return {
+      success: false,
+      refinedTranscript: transcriptText,
+      message: err.message,
+    };
+  }
+}
+
+export async function apiTranscribeAudioFile(
+  audioBase64: string,
+  audioMimeType?: string,
+  meta?: { judulRapat?: string; jenisRapat?: string }
+): Promise<{ success: boolean; transcript: string; message?: string }> {
+  try {
+    const res = await fetch('/api/ai/transcribe-audio', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        audioBase64,
+        audioMimeType,
+        judulRapat: meta?.judulRapat,
+        jenisRapat: meta?.jenisRapat,
+      }),
+    });
+    const json = await res.json();
+    return json;
+  } catch (err: any) {
+    return {
+      success: false,
+      transcript: '',
+      message: err.message,
+    };
+  }
+}

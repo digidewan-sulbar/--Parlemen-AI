@@ -20,6 +20,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { triggerDirectPdfDownload } from '../../utils/risalahPdf';
+import { triggerDirectWordDownload } from '../../utils/risalahWord';
 
 interface Props {
   risalahList: RisalahItem[];
@@ -488,6 +489,13 @@ export const RisalahSmartSearch: React.FC<Props> = ({
                       title="Unduh PDF Dokumen Risalah"
                     >
                       <Download className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => triggerDirectWordDownload(item)}
+                      className="p-1.5 bg-slate-800 hover:bg-blue-900/60 text-blue-300 rounded-lg transition"
+                      title="Unduh Berkas Microsoft Word (.doc)"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>

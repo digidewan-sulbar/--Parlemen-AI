@@ -3,7 +3,9 @@ import { RisalahItem, JenisRapat } from '../../types';
 import { RichTextEditor } from './RichTextEditor';
 import { PesertaRapatManagerModal } from '../PesertaRapatManagerModal';
 import { createDefaultTrackingSteps, createAuditLogEntry } from '../../utils/risalahTracking';
-import { X, FileText, Save, Plus, Trash2, Maximize2, Sparkles, Users } from 'lucide-react';
+import { normalizeTranscriptDocument } from '../../utils/indonesianTextNormalizer';
+import { apiRefineTranscriptBaku } from '../../utils/supabaseApi';
+import { X, FileText, Save, Plus, Trash2, Maximize2, Sparkles, Users, RefreshCw, CheckCircle2, Building2 } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -22,6 +24,7 @@ export const RisalahFormModal: React.FC<Props> = ({
   const [judulRapat, setJudulRapat] = useState('');
   const [jenisRapat, setJenisRapat] = useState<JenisRapat>('Rapat Paripurna');
   const [hariTanggalWaktu, setHariTanggalWaktu] = useState('');
+  const [ruanganRapat, setRuanganRapat] = useState('Ruang Sidang Paripurna Utama');
   const [pimpinanRapat, setPimpinanRapat] = useState('');
   const [anggotaHadir, setAnggotaHadir] = useState('');
   const [namaNotulis, setNamaNotulis] = useState('');
@@ -34,6 +37,8 @@ export const RisalahFormModal: React.FC<Props> = ({
   const [transkripCatatanHtml, setTranskripCatatanHtml] = useState('');
   const [initialFormattedTranscript, setInitialFormattedTranscript] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
+  const [isRefining, setIsRefining] = useState(false);
+  const [refineNotice, setRefineNotice] = useState<string | null>(null);
 
   useEffect(() => {
     setFormError(null);
@@ -42,6 +47,7 @@ export const RisalahFormModal: React.FC<Props> = ({
       setJudulRapat(initialData.judulRapat);
       setJenisRapat(initialData.jenisRapat);
       setHariTanggalWaktu(initialData.hariTanggalWaktu);
+      setRuanganRapat(initialData.ruanganRapat || 'Ruang Sidang Paripurna Utama');
       setPimpinanRapat(initialData.pimpinanRapat);
       setAnggotaHadir(initialData.anggotaHadir);
       setNamaNotulis(initialData.namaNotulis || 'Arianto, AP, M.M.');
@@ -69,6 +75,7 @@ export const RisalahFormModal: React.FC<Props> = ({
       setJudulRapat('');
       setJenisRapat('Rapat Paripurna');
       setHariTanggalWaktu('Kamis, 30 Juli 2026 - 09.00 WITA');
+      setRuanganRapat('Ruang Sidang Paripurna Utama');
       setPimpinanRapat('Dr. H. Amalia Aras, S.E., M.M.');
       setAnggotaHadir('38 dari 41 Anggota DPRD Sulbar & OPD Pemprov');
       setNamaNotulis('Arianto, AP, M.M.');
@@ -214,6 +221,7 @@ export const RisalahFormModal: React.FC<Props> = ({
       judulRapat: judulRapat.trim(),
       jenisRapat,
       hariTanggalWaktu: hariTanggalWaktu.trim(),
+      ruanganRapat: ruanganRapat.trim() || 'Ruang Sidang Paripurna Utama',
       pimpinanRapat: pimpinanRapat.trim(),
       anggotaHadir: anggotaHadir.trim(),
       namaNotulis: currentNotulis,
@@ -284,7 +292,7 @@ export const RisalahFormModal: React.FC<Props> = ({
           )}
 
           {/* Top Row: Meta Parameters */}
-          <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-200 mb-1">
                 Nomor Register Risalah
@@ -344,6 +352,35 @@ export const RisalahFormModal: React.FC<Props> = ({
                 className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
                 required
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-emerald-400 mb-1 flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Ruangan Rapat / Lokasi</span>
+              </label>
+              <input
+                type="text"
+                list="daftar-ruangan-rapat"
+                value={ruanganRapat}
+                onChange={(e) => setRuanganRapat(e.target.value)}
+                placeholder="Pilih atau ketik ruangan..."
+                className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 font-medium"
+                required
+              />
+              <datalist id="daftar-ruangan-rapat">
+                <option value="Ruang Sidang Paripurna Utama" />
+                <option value="Ruang Rapat Badan Musyawarah (Bamus) Lantai 1" />
+                <option value="Ruang Rapat Badan Anggaran (Banggar)" />
+                <option value="Ruang Rapat Pimpinan Gedung Utama" />
+                <option value="Ruang Rapat Komisi I Gedung A" />
+                <option value="Ruang Rapat Komisi II Gedung A" />
+                <option value="Ruang Rapat Komisi III Gedung B" />
+                <option value="Ruang Rapat Komisi IV Gedung A" />
+                <option value="Ruang Rapat Bapemperda" />
+                <option value="Ruang Rapat Sekretariat Dewan" />
+                <option value="Aula Serbaguna DPRD Prov. Sulbar" />
+              </datalist>
             </div>
           </div>
 
@@ -526,14 +563,70 @@ export const RisalahFormModal: React.FC<Props> = ({
 
           {/* Ms Word Style Rich Editor: Transkrip / Catatan Pembicaraan Rapat */}
           <div className="space-y-2 bg-slate-950/60 border border-slate-800 rounded-2xl p-4">
-            <div>
-              <label className="text-sm font-bold text-slate-100 block">
-                Catatan Petikan Transkrip Pembicara Dewan (Opsional / Lengkap)
-              </label>
-              <p className="text-xs text-slate-400 mb-2">
-                Tempat mengetik atau menempelkan seluruh kutipan dan jalannya persidangan dewan secara leluasa dengan lembar kerja yang diperbesar.
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <label className="text-sm font-bold text-slate-100 block">
+                  Catatan Petikan Transkrip Pembicara Dewan (Opsional / Lengkap)
+                </label>
+                <p className="text-xs text-slate-400">
+                  Tempat mengetik atau menempelkan seluruh kutipan dan jalannya persidangan dewan secara leluasa.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!transkripCatatanHtml.trim()) return;
+                  setIsRefining(true);
+                  setRefineNotice(null);
+                  try {
+                    const res = await apiRefineTranscriptBaku(transkripCatatanHtml, {
+                      judulRapat,
+                      jenisRapat,
+                    });
+                    if (res.success && res.refinedTranscript) {
+                      setTranskripCatatanHtml(res.refinedTranscript);
+                      setRefineNotice('✨ Transkrip berhasil diselaraskan ke Bahasa Indonesia Baku Resmi.');
+                      setTimeout(() => setRefineNotice(null), 4000);
+                    } else {
+                      const local = normalizeTranscriptDocument(transkripCatatanHtml);
+                      setTranskripCatatanHtml(local.normalizedText);
+                      setRefineNotice(`✨ Diselaraskan ke Bahasa Baku (${local.wordsReplacedCount} kata diperbaiki).`);
+                      setTimeout(() => setRefineNotice(null), 4000);
+                    }
+                  } catch {
+                    const local = normalizeTranscriptDocument(transkripCatatanHtml);
+                    setTranskripCatatanHtml(local.normalizedText);
+                    setRefineNotice(`✨ Diselaraskan ke Bahasa Baku (${local.wordsReplacedCount} kata diperbaiki).`);
+                    setTimeout(() => setRefineNotice(null), 4000);
+                  } finally {
+                    setIsRefining(false);
+                  }
+                }}
+                disabled={isRefining || !transkripCatatanHtml.trim()}
+                className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition shadow"
+              >
+                {isRefining ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Membakuisasikan...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+                    <span>✨ Rapikan ke Bahasa Baku (AI)</span>
+                  </>
+                )}
+              </button>
             </div>
+
+            {refineNotice && (
+              <div className="bg-emerald-950/70 border border-emerald-500/50 rounded-xl p-2.5 text-xs text-emerald-200 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <span>{refineNotice}</span>
+              </div>
+            )}
+
             <RichTextEditor
               value={transkripCatatanHtml}
               onChange={(val) => setTranskripCatatanHtml(val)}

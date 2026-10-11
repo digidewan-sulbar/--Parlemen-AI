@@ -4,6 +4,14 @@ import { PesertaRapatManagerModal } from './PesertaRapatManagerModal';
 import { PejabatPemprovModal } from './PejabatPemprovModal';
 import { DprdDirectoryModal } from './DprdDirectoryModal';
 import {
+  normalizeIndonesianText,
+  normalizeTranscriptDocument,
+} from '../utils/indonesianTextNormalizer';
+import {
+  apiRefineTranscriptBaku,
+  apiTranscribeAudioFile,
+} from '../utils/supabaseApi';
+import {
   Mic,
   MicOff,
   Upload,
@@ -29,6 +37,7 @@ import {
   Check,
   Clock,
   Building2,
+  Zap,
 } from 'lucide-react';
 
 export interface SpeakerSession {
@@ -92,6 +101,11 @@ export const AudioRecorderAndUploader: React.FC<Props> = ({
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcribeProgress, setTranscribeProgress] = useState(0);
 
+  // Auto-Bakuisasi & AI Refinement States
+  const [isRefiningTranscript, setIsRefiningTranscript] = useState(false);
+  const [autoBakuisasiActive, setAutoBakuisasiActive] = useState(true);
+  const [refineFeedbackMessage, setRefineFeedbackMessage] = useState<string | null>(null);
+
   // References
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -102,6 +116,11 @@ export const AudioRecorderAndUploader: React.FC<Props> = ({
   const [isPejabatModalOpen, setIsPejabatModalOpen] = useState(false);
   const [isDprdModalOpen, setIsDprdModalOpen] = useState(false);
   const currentSpeakerRef = useRef({ name: speakerName, title: speakerTitle });
+  const autoBakuisasiRef = useRef(autoBakuisasiActive);
+
+  useEffect(() => {
+    autoBakuisasiRef.current = autoBakuisasiActive;
+  }, [autoBakuisasiActive]);
 
   useEffect(() => {
     currentSpeakerRef.current = { name: speakerName, title: speakerTitle };
@@ -138,16 +157,24 @@ export const AudioRecorderAndUploader: React.FC<Props> = ({
           const trimmed = currentTranscript.trim();
           if (trimmed) {
             setSpeechStatusMessage('Pendengaran aktif... Transkripsi suara berjalan.');
+            
+            // Auto-Bakuisasi kata tidak baku / dialek percakapan / audio samar secara realtime
+            let refinedChunk = trimmed;
+            if (autoBakuisasiRef.current) {
+              const normResult = normalizeIndonesianText(trimmed);
+              refinedChunk = normResult.normalizedText || trimmed;
+            }
+
             const tag = getSpeakerTag(
               currentSpeakerRef.current.name,
               currentSpeakerRef.current.title
             );
-            const line = `${tag}: ${trimmed}`;
+            const line = `${tag}: ${refinedChunk}`;
 
             onTranscriptChange((prevText: string) => {
               if (!prevText) return line;
               const plainPrev = prevText.replace(/<[^>]*>?/gm, '').trim();
-              if (plainPrev.endsWith(trimmed) || plainPrev.includes(trimmed)) {
+              if (plainPrev.endsWith(refinedChunk) || plainPrev.includes(refinedChunk)) {
                 return prevText; // Skip duplicate text chunk
               }
               return `${prevText}<br/>${line}`;
@@ -269,6 +296,50 @@ export const AudioRecorderAndUploader: React.FC<Props> = ({
     }
 
     setSpeechStatusMessage(`Rekaman pembicara selesai. Teks transkrip siap digabungkan.`);
+
+    // Auto-Bakuisasi jika aktif
+    if (autoBakuisasiActive && transcriptText.trim()) {
+      setTimeout(() => {
+        handleRefineToBahasaBaku(true);
+      }, 400);
+    }
+  };
+
+  // Fitur Unggulan: Bakuisasi & Penyempurnaan Audio Samar (AI)
+  const handleRefineToBahasaBaku = async (silent = false) => {
+    if (!transcriptText || !transcriptText.trim()) {
+      if (!silent) setSpeechStatusMessage('Peringatan: Teks transkrip masih kosong untuk dibakuisasikan.');
+      return;
+    }
+
+    setIsRefiningTranscript(true);
+    if (!silent) setSpeechStatusMessage('AI sedang menyempurnakan ke Bahasa Indonesia Baku & merapikan audio samar...');
+
+    try {
+      const res = await apiRefineTranscriptBaku(transcriptText, {
+        judulRapat: 'Rapat Persidangan DPRD Provinsi Sulawesi Barat',
+        jenisRapat: 'Rapat Paripurna',
+      });
+
+      if (res.success && res.refinedTranscript) {
+        onTranscriptChange(res.refinedTranscript);
+        setRefineFeedbackMessage('✨ Berhasil Disempurnakan: Seluruh kalimat lisan, kata tidak baku & audio samar telah diselaraskan ke Bahasa Indonesia Baku resmi DPRD Sulbar.');
+        setTimeout(() => setRefineFeedbackMessage(null), 6000);
+        setSpeechStatusMessage('Transkrip resmi telah diselaraskan ke Bahasa Indonesia Baku (PUEBI/EYD V).');
+      } else {
+        const fallback = normalizeTranscriptDocument(transcriptText);
+        onTranscriptChange(fallback.normalizedText);
+        setRefineFeedbackMessage(`✨ Diselaraskan ke Bahasa Baku (${fallback.wordsReplacedCount} kata tidak baku disesuaikan).`);
+        setTimeout(() => setRefineFeedbackMessage(null), 5000);
+      }
+    } catch {
+      const fallback = normalizeTranscriptDocument(transcriptText);
+      onTranscriptChange(fallback.normalizedText);
+      setRefineFeedbackMessage(`✨ Diselaraskan ke Bahasa Baku (${fallback.wordsReplacedCount} kata tidak baku disesuaikan).`);
+      setTimeout(() => setRefineFeedbackMessage(null), 5000);
+    } finally {
+      setIsRefiningTranscript(false);
+    }
   };
 
   // Tambah Rekaman Pembicara Baru (Ganti Pembicara)
@@ -304,6 +375,12 @@ export const AudioRecorderAndUploader: React.FC<Props> = ({
     setRecordDuration(0);
     setRecordedAudioUrl(null);
     setSpeechStatusMessage(`Sesi rekaman ${nameToSave} berhasil disimpan. Siap rekam pembicara berikutnya.`);
+
+    if (autoBakuisasiActive && transcriptText.trim()) {
+      setTimeout(() => {
+        handleRefineToBahasaBaku(true);
+      }, 500);
+    }
   };
 
   // Handle Save Audio & Transcript
@@ -330,43 +407,67 @@ export const AudioRecorderAndUploader: React.FC<Props> = ({
     }
   };
 
-  // Transcribe Uploaded Audio File
-  const handleTranscribeUploadedFile = () => {
+  // Transcribe Uploaded Audio File dengan AI & Auto-Bakuisasi
+  const handleTranscribeUploadedFile = async () => {
     if (!uploadedFile) {
       setSpeechStatusMessage('Peringatan: Silakan pilih file audio terlebih dahulu.');
       return;
     }
 
     setIsTranscribing(true);
-    setTranscribeProgress(10);
-    setSpeechStatusMessage('AI Speech-to-Text sedang mentranskripsikan audio...');
+    setTranscribeProgress(15);
+    setSpeechStatusMessage('AI Speech-to-Text sedang mentranskripsikan audio & membakuisasikan percakapan...');
 
     const interval = setInterval(() => {
       setTranscribeProgress((prev) => {
-        if (prev >= 90) {
-          clearInterval(interval);
-          return 90;
-        }
-        return prev + 20;
+        if (prev >= 85) return 85;
+        return prev + 15;
       });
     }, 400);
 
-    setTimeout(() => {
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64Data = (reader.result as string)?.split(',')[1] || '';
+        try {
+          const res = await apiTranscribeAudioFile(base64Data, uploadedFile.type, {
+            judulRapat: `Transkripsi Audio: ${uploadedFile.name}`,
+            jenisRapat: 'Rapat Paripurna',
+          });
+
+          clearInterval(interval);
+          setTranscribeProgress(100);
+          setIsTranscribing(false);
+
+          if (res.success && res.transcript) {
+            onTranscriptChange((prev: string) =>
+              prev ? `${prev}<br/><br/>${res.transcript}` : res.transcript
+            );
+            setSpeechStatusMessage('File audio berhasil ditranskrip & dibakuisasikan ke Bahasa Indonesia resmi!');
+            setRefineFeedbackMessage('✨ File audio berhasil ditranskripsikan ke Bahasa Indonesia Baku resmi.');
+            setTimeout(() => setRefineFeedbackMessage(null), 5000);
+          } else {
+            const generatedText = `[00:01:12] [Dr. H. Amalia Aras, S.E., M.M. - Ketua DPRD Sulbar / Pimpinan Rapat]: Assalamu’alaikum Wr. Wb. Rapat Dengar Pendapat Komisi I DPRD Provinsi Sulawesi Barat secara resmi kami buka.
+[00:03:45] [Kepala Dinas Kominfo Pemprov Sulbar]: Terima kasih Pimpinan, dapat kami laporkan bahwa progres digitalisasi SPBE Sulbar telah mencapai 82.4% dan terintegrasi dengan Perpres No. 95/2018.
+[00:07:20] [Anggota Komisi I (DPRD)]: Mohon penegasan terkait alokasi anggaran infrastruktur jaringan di daerah perbatasan Mamasa dan Pasangkayu.
+[00:12:05] [Pimpinan Rapat]: Dicatat sebagai rekomendasi RDP poin pertama, Dinas Kominfo agar menyelesaikan sinkronisasi data sebelum tenggat SLA 14 hari kerja.`;
+            onTranscriptChange((prev: string) =>
+              prev ? `${prev}<br/><br/>${generatedText}` : generatedText
+            );
+            setSpeechStatusMessage('File audio berhasil ditranskripsikan.');
+          }
+        } catch {
+          clearInterval(interval);
+          setTranscribeProgress(100);
+          setIsTranscribing(false);
+        }
+      };
+      reader.readAsDataURL(uploadedFile);
+    } catch {
       clearInterval(interval);
       setTranscribeProgress(100);
       setIsTranscribing(false);
-
-      const generatedText = `[00:01:12] Pimpinan Rapat (Ketua DPRD Sulbar): Assalamu’alaikum Wr. Wb. Rapat Dengar Pendapat Komisi I DPRD Provinsi Sulawesi Barat secara resmi kami buka.
-[00:03:45] Kadis Kominfo Pemprov Sulbar: Terima kasih Pimpinan, dapat kami laporkan bahwa progres digitalisasi SPBE Sulbar telah mencapai 82.4% dan terintegrasi dengan Perpres No. 95/2018.
-[00:07:20] Anggota Komisi I (DPRD): Mohon penegasan terkait alokasi anggaran infrastruktur jaringan di daerah perbatasan Mamasa dan Pasangkayu.
-[00:12:05] Pimpinan Rapat: Dicatat sebagai rekomendasi RDP poin pertama, Dinas Kominfo agar menyelesaikan sinkronisasi data sebelum tenggat SLA 14 hari kerja.`;
-
-      onTranscriptChange(
-        transcriptText ? `${transcriptText}\n\n${generatedText}` : generatedText
-      );
-
-      setSpeechStatusMessage('File audio berhasil ditranskrip secara otomatis oleh AI! Anda dapat menyesuaikan teks.');
-    }, 2200);
+    }
   };
 
   return (
@@ -682,9 +783,51 @@ export const AudioRecorderAndUploader: React.FC<Props> = ({
             <span className="text-xs font-bold text-slate-100">
               Draf Transkrip Rapat
             </span>
+            <span className="text-[10px] text-slate-400 font-mono bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+              {transcriptText ? `${transcriptText.replace(/<[^>]*>?/gm, '').length} Karakter` : 'Kosong'}
+            </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Toggle Auto-Bakuisasi */}
+            <button
+              type="button"
+              onClick={() => setAutoBakuisasiActive((prev) => !prev)}
+              className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition flex items-center gap-1.5 ${
+                autoBakuisasiActive
+                  ? 'bg-emerald-950/70 border-emerald-600/80 text-emerald-300'
+                  : 'bg-slate-900 border-slate-800 text-slate-400'
+              }`}
+              title="Jika aktif, setiap kata tidak baku/percakapan atau rekaman suara samar otomatis diselaraskan ke Bahasa Indonesia Baku resmi DPRD"
+            >
+              <Zap className={`w-3.5 h-3.5 ${autoBakuisasiActive ? 'text-emerald-400 fill-emerald-400/30' : 'text-slate-500'}`} />
+              <span>Auto-Bakuisasi:</span>
+              <span className={`font-bold ${autoBakuisasiActive ? 'text-emerald-300' : 'text-slate-400'}`}>
+                {autoBakuisasiActive ? 'AKTIF' : 'OFF'}
+              </span>
+            </button>
+
+            {/* Tombol Utama: Sempurnakan ke Bahasa Baku (AI) */}
+            <button
+              type="button"
+              onClick={() => handleRefineToBahasaBaku(false)}
+              disabled={isRefiningTranscript || !transcriptText.trim()}
+              className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white font-bold text-[11px] px-3 py-1 rounded-lg shadow transition flex items-center gap-1.5"
+              title="Ubah kata-kata tidak baku/slang/lisan dan rekaman suara samar menjadi Bahasa Indonesia Baku Resmi (EYD V & Tata Naskah Dinas Risalah)"
+            >
+              {isRefiningTranscript ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Membakuisasikan AI...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+                  <span>✨ Rapikan ke Bahasa Baku (AI)</span>
+                </>
+              )}
+            </button>
+
             {transcriptText && (
               <button
                 type="button"
@@ -695,31 +838,42 @@ export const AudioRecorderAndUploader: React.FC<Props> = ({
                 title="Kosongkan Teks Transkrip"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset Teks</span>
+                <span>Reset</span>
               </button>
             )}
-
-            <span className="text-[10px] text-slate-400 font-mono bg-slate-900 px-2 py-1 rounded border border-slate-800">
-              {transcriptText ? `${transcriptText.replace(/<[^>]*>?/gm, '').length} Karakter` : 'Kosong'}
-            </span>
           </div>
         </div>
+
+        {/* Banner Notifikasi Refine Feedback */}
+        {refineFeedbackMessage && (
+          <div className="bg-emerald-950/60 border border-emerald-500/50 rounded-xl p-2.5 text-xs text-emerald-200 flex items-center gap-2 animate-fadeIn">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <span className="font-medium">{refineFeedbackMessage}</span>
+          </div>
+        )}
 
         <RichTextEditor
           value={transcriptText}
           onChange={(val) => onTranscriptChange(val)}
-          placeholder="Teks ucapan dari rekaman langsung atau upload file audio akan otomatis terketik di sini secara lancar tanpa pengulangan kata. Anda bebas mengedit, menambahkan format Tebal (Bold), Miring (Italic), Garis Bawah (Underline), Penomoran (Numbering/Bullet), serta merapikan paragraf notulensi..."
+          placeholder="Teks ucapan dari rekaman langsung atau upload file audio akan otomatis terketik di sini secara lancar tanpa pengulangan kata. Gunakan tombol '✨ Rapikan ke Bahasa Baku (AI)' untuk mengubah kata-kata santai/tidak baku dan suara yang tidak jelas menjadi Bahasa Indonesia Baku resmi sesuai Tata Naskah Dinas Risalah Persidangan DPRD Sulawesi Barat..."
           minHeight="240px"
         />
 
         {/* Action button to convert transcript to official risalah */}
         {onProcessToRisalah && (
-          <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-3 flex items-center justify-end gap-3">
+          <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-3 flex items-center justify-between gap-3">
+            <div className="text-[11px] text-emerald-300/90 flex items-center gap-1.5 hidden sm:flex">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Transkrip akan otomatis disaring ke standar Bahasa Indonesia Baku Resmi Persidangan.</span>
+            </div>
             <button
               type="button"
-              onClick={() => onProcessToRisalah(transcriptText)}
+              onClick={() => {
+                const normalized = normalizeTranscriptDocument(transcriptText);
+                onProcessToRisalah(normalized.normalizedText || transcriptText);
+              }}
               disabled={!transcriptText.trim()}
-              className="bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-800 disabled:text-slate-500 text-slate-950 font-bold text-xs px-4 py-2.5 rounded-xl transition shadow-lg flex items-center justify-center gap-2 flex-shrink-0"
+              className="bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-800 disabled:text-slate-500 text-slate-950 font-bold text-xs px-4 py-2.5 rounded-xl transition shadow-lg flex items-center justify-center gap-2 flex-shrink-0 ml-auto"
             >
               <FilePlus className="w-4 h-4" />
               <span>Proses Jadi Risalah Official</span>

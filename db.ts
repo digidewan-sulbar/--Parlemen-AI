@@ -67,6 +67,7 @@ export async function initDatabase() {
         judul_rapat TEXT NOT NULL,
         jenis_rapat VARCHAR(100),
         hari_tanggal_waktu VARCHAR(255),
+        ruangan_rapat VARCHAR(255),
         pimpinan_rapat TEXT,
         anggota_hadir TEXT,
         transkrip_pembicara JSONB DEFAULT '[]'::jsonb,
@@ -86,6 +87,11 @@ export async function initDatabase() {
         created_at TIMESTAMPTZ DEFAULT NOW(),
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
+    `);
+
+    // Pastikan kolom ruangan_rapat ada jika tabel sudah terbuat sebelumnya
+    await client.query(`
+      ALTER TABLE risalah ADD COLUMN IF NOT EXISTS ruangan_rapat VARCHAR(255);
     `);
 
     // 2. Table ranperda
@@ -251,11 +257,11 @@ export async function seedDatabaseIfEmpty() {
       for (const item of INITIAL_RISALAH) {
         await client.query(
           `INSERT INTO risalah (
-            id, nomor_risalah, judul_rapat, jenis_rapat, hari_tanggal_waktu, pimpinan_rapat, anggota_hadir,
+            id, nomor_risalah, judul_rapat, jenis_rapat, hari_tanggal_waktu, ruangan_rapat, pimpinan_rapat, anggota_hadir,
             transkrip_pembicara, resume_poin_utama, kesimpulan_keputusan, sentimen_summary, audio_file_url,
             created_date, nama_notulis, nip_notulis, status_tahap, progress_persen, tahap_tracking, audit_logs,
             topik_kategori, kata_kunci_pintar
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
           ON CONFLICT (id) DO NOTHING`,
           [
             item.id,
@@ -263,6 +269,7 @@ export async function seedDatabaseIfEmpty() {
             item.judulRapat,
             item.jenisRapat,
             item.hariTanggalWaktu,
+            item.ruanganRapat || 'Ruang Sidang Paripurna Utama',
             item.pimpinanRapat,
             item.anggotaHadir,
             JSON.stringify(item.transkripPembicara || []),
@@ -516,6 +523,7 @@ export async function dbGetAllRisalah() {
     judulRapat: row.judul_rapat,
     jenisRapat: row.jenis_rapat,
     hariTanggalWaktu: row.hari_tanggal_waktu,
+    ruanganRapat: row.ruangan_rapat || '',
     pimpinanRapat: row.pimpinan_rapat,
     anggotaHadir: row.anggota_hadir,
     transkripPembicara: row.transkrip_pembicara || [],
@@ -538,16 +546,17 @@ export async function dbGetAllRisalah() {
 export async function dbInsertRisalah(item: any) {
   const query = `
     INSERT INTO risalah (
-      id, nomor_risalah, judul_rapat, jenis_rapat, hari_tanggal_waktu, pimpinan_rapat, anggota_hadir,
+      id, nomor_risalah, judul_rapat, jenis_rapat, hari_tanggal_waktu, ruangan_rapat, pimpinan_rapat, anggota_hadir,
       transkrip_pembicara, resume_poin_utama, kesimpulan_keputusan, sentimen_summary, audio_file_url,
       created_date, nama_notulis, nip_notulis, status_tahap, progress_persen, tahap_tracking, audit_logs,
       topik_kategori, kata_kunci_pintar, updated_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, NOW())
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, NOW())
     ON CONFLICT (id) DO UPDATE SET
       nomor_risalah = EXCLUDED.nomor_risalah,
       judul_rapat = EXCLUDED.judul_rapat,
       jenis_rapat = EXCLUDED.jenis_rapat,
       hari_tanggal_waktu = EXCLUDED.hari_tanggal_waktu,
+      ruangan_rapat = EXCLUDED.ruangan_rapat,
       pimpinan_rapat = EXCLUDED.pimpinan_rapat,
       anggota_hadir = EXCLUDED.anggota_hadir,
       transkrip_pembicara = EXCLUDED.transkrip_pembicara,
@@ -573,6 +582,7 @@ export async function dbInsertRisalah(item: any) {
     item.judulRapat || '',
     item.jenisRapat || 'Rapat Paripurna',
     item.hariTanggalWaktu || '',
+    item.ruanganRapat || '',
     item.pimpinanRapat || '',
     item.anggotaHadir || '',
     JSON.stringify(item.transkripPembicara || []),
@@ -868,5 +878,104 @@ export async function dbMarkNotificationRead(id: string) {
 
 export async function dbMarkAllNotificationsRead() {
   await pool.query('UPDATE notifications SET is_read = TRUE');
+}
+
+// PRESS RELEASES
+export async function dbGetAllPress() {
+  const res = await pool.query('SELECT * FROM press_releases ORDER BY created_at DESC');
+  return res.rows.map((r) => ({
+    id: r.id,
+    judulBerita: r.judul_berita,
+    tanggalRilis: r.tanggal_rilis,
+    kategori: r.kategori,
+    jumlahKata: r.jumlah_kata,
+    kontenBerita: r.konten_berita,
+    status: r.status,
+  }));
+}
+
+export async function dbInsertPress(item: any) {
+  const query = `
+    INSERT INTO press_releases (
+      id, judul_berita, tanggal_rilis, kategori, jumlah_kata, konten_berita, status
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+    ON CONFLICT (id) DO UPDATE SET
+      judul_berita = EXCLUDED.judul_berita,
+      tanggal_rilis = EXCLUDED.tanggal_rilis,
+      kategori = EXCLUDED.kategori,
+      jumlah_kata = EXCLUDED.jumlah_kata,
+      konten_berita = EXCLUDED.konten_berita,
+      status = EXCLUDED.status,
+      updated_at = NOW()
+    RETURNING *;
+  `;
+  const res = await pool.query(query, [
+    item.id,
+    item.judulBerita,
+    item.tanggalRilis,
+    item.kategori,
+    item.jumlahKata || 0,
+    item.kontenBerita,
+    item.status || 'Draf',
+  ]);
+  return res.rows[0];
+}
+
+export async function dbDeletePress(id: string) {
+  const res = await pool.query('DELETE FROM press_releases WHERE id = $1 RETURNING id;', [id]);
+  return res.rowCount && res.rowCount > 0;
+}
+
+// PROTOCOL BRIEFING SHEETS
+export async function dbGetAllProtocol() {
+  const res = await pool.query('SELECT * FROM protocol_briefing_sheets ORDER BY created_at DESC');
+  return res.rows.map((r) => ({
+    id: r.id,
+    namaAcara: r.nama_acara,
+    tanggalWaktu: r.tanggal_waktu,
+    pimpinanHadir: r.pimpinan_hadir,
+    ringkasanAgenda: r.ringkasan_agenda,
+    rundown: r.rundown || [],
+    seatingArrangement: r.seating_arrangement,
+    penanggungJawab: r.penanggung_jawab,
+    poinPentingPimpinan: r.poin_penting_pimpinan || [],
+  }));
+}
+
+export async function dbInsertProtocol(item: any) {
+  const query = `
+    INSERT INTO protocol_briefing_sheets (
+      id, nama_acara, tanggal_waktu, pimpinan_hadir, ringkasan_agenda,
+      rundown, seating_arrangement, penanggung_jawab, poinPentingPimpinan
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    ON CONFLICT (id) DO UPDATE SET
+      nama_acara = EXCLUDED.nama_acara,
+      tanggal_waktu = EXCLUDED.tanggal_waktu,
+      pimpinan_hadir = EXCLUDED.pimpinan_hadir,
+      ringkasan_agenda = EXCLUDED.ringkasan_agenda,
+      rundown = EXCLUDED.rundown,
+      seating_arrangement = EXCLUDED.seating_arrangement,
+      penanggung_jawab = EXCLUDED.penanggung_jawab,
+      poinPentingPimpinan = EXCLUDED.poinPentingPimpinan,
+      updated_at = NOW()
+    RETURNING *;
+  `;
+  const res = await pool.query(query, [
+    item.id,
+    item.namaAcara,
+    item.tanggalWaktu,
+    item.pimpinanHadir,
+    item.ringkasanAgenda,
+    JSON.stringify(item.rundown || []),
+    item.seatingArrangement,
+    item.penanggungJawab,
+    JSON.stringify(item.poinPentingPimpinan || []),
+  ]);
+  return res.rows[0];
+}
+
+export async function dbDeleteProtocol(id: string) {
+  const res = await pool.query('DELETE FROM protocol_briefing_sheets WHERE id = $1 RETURNING id;', [id]);
+  return res.rowCount && res.rowCount > 0;
 }
 

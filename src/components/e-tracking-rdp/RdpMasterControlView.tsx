@@ -3,6 +3,7 @@ import { RdpRekomendasiExtended, RdpStatus } from './rdpTypes';
 import { PEJABAT_PEMPROV_SULBAR_2026 } from '../../data/pejabatPemprovData';
 import { RichTextEditor } from '../forms/RichTextEditor';
 import { formatWhatsAppPhone, HtmlDisplay } from './rdpWaUtils';
+import { AuthUser } from '../../types';
 import {
   Plus,
   Search,
@@ -24,10 +25,13 @@ import {
   Download,
   AlertTriangle,
   Zap,
+  Lock,
+  Info,
 } from 'lucide-react';
 
 interface Props {
   dataList: RdpRekomendasiExtended[];
+  currentUser?: AuthUser | null;
   onAddRecommendation: (newItem: RdpRekomendasiExtended) => void;
   onUpdateRecommendation: (updatedItem: RdpRekomendasiExtended) => void;
   onDeleteRecommendation: (id: string) => void;
@@ -37,12 +41,14 @@ interface Props {
 
 export const RdpMasterControlView: React.FC<Props> = ({
   dataList,
+  currentUser,
   onAddRecommendation,
   onUpdateRecommendation,
   onDeleteRecommendation,
   onSendWaNotification,
   onOpenEvidencePortal,
 }) => {
+  const canVerify = currentUser?.role === 'admin' || currentUser?.role === 'kabag';
   const [activeStatusFilter, setActiveStatusFilter] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedKomisiFilter, setSelectedKomisiFilter] = useState<string>('ALL');
@@ -181,6 +187,10 @@ export const RdpMasterControlView: React.FC<Props> = ({
 
   // Review Verification Handlers (Approve -> TUNTAS / Reject -> DIKEMBALIKAN)
   const handleApproveTuntas = () => {
+    if (!canVerify) {
+      alert('Akses Ditolak: Hanya Admin dan Kabag yang berwenang mengotentikasi dan mengesahkan status TUNTAS rekomendasi RDP.');
+      return;
+    }
     if (!reviewingItem) return;
     const updated: RdpRekomendasiExtended = {
       ...reviewingItem,
@@ -192,7 +202,7 @@ export const RdpMasterControlView: React.FC<Props> = ({
           statusAwal: reviewingItem.status,
           statusBaru: 'TUNTAS',
           timestamp: new Date().toLocaleString('id-ID', { timeZone: 'Asia/Makassar' }),
-          actor: 'Pimpinan Komisi DPRD',
+          actor: currentUser?.fullName ? `${currentUser.fullName} (${currentUser.jabatan})` : 'Pimpinan Komisi DPRD',
           keterangan: 'Bukti tindak lanjut diverifikasi dan disetujui. Rekomendasi dinyatakan TUNTAS.',
         },
       ],
@@ -202,6 +212,10 @@ export const RdpMasterControlView: React.FC<Props> = ({
   };
 
   const handleRejectDikembalikan = () => {
+    if (!canVerify) {
+      alert('Akses Ditolak: Hanya Admin dan Kabag yang berwenang mengembalikan rekomendasi tindak lanjut RDP.');
+      return;
+    }
     if (!reviewingItem) return;
     if (!catatanRevisiInput.trim()) {
       alert('Mohon masukkan catatan revisi untuk OPD.');
@@ -218,7 +232,7 @@ export const RdpMasterControlView: React.FC<Props> = ({
           statusAwal: reviewingItem.status,
           statusBaru: 'DIKEMBALIKAN',
           timestamp: new Date().toLocaleString('id-ID', { timeZone: 'Asia/Makassar' }),
-          actor: 'Komisi DPRD Sulbar',
+          actor: currentUser?.fullName ? `${currentUser.fullName} (${currentUser.jabatan})` : 'Komisi DPRD Sulbar',
           keterangan: `Laporan dikembalikan. Catatan: ${catatanRevisiInput}`,
         },
       ],
@@ -704,35 +718,64 @@ export const RdpMasterControlView: React.FC<Props> = ({
                 )}
               </div>
 
+              {/* Notice for Operator if viewing */}
+              {!canVerify && (
+                <div className="bg-amber-950/40 border border-amber-800/60 rounded-xl p-3 text-[11px] text-amber-200 flex items-start gap-2">
+                  <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Mode Tinjau Administratif Operator:</strong> Anda dapat memeriksa kelengkapan berkas bukti dan kronologi tindak lanjut OPD. Hak verifikasi pengesahan <strong>TUNTAS</strong> atau <strong>DIKEMBALIKAN</strong> merupakan wewenang otentikasi akun <strong>Admin</strong> dan <strong>Kabag Persidangan</strong>.
+                  </span>
+                </div>
+              )}
+
               {/* Reject Note Input */}
-              <div className="pt-2">
-                <label className="block font-bold text-rose-400 mb-1">
-                  Catatan Komisi (Wajib Diisi Jika Mengembalikan Laporan)
-                </label>
-                <textarea
-                  rows={2}
-                  value={catatanRevisiInput}
-                  onChange={(e) => setCatatanRevisiInput(e.target.value)}
-                  placeholder="Contoh: Bukti foto serah terima kurang lengkap, mohon lampirkan BAST resmi..."
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:border-rose-500"
-                />
-              </div>
+              {canVerify && (
+                <div className="pt-2">
+                  <label className="block font-bold text-rose-400 mb-1">
+                    Catatan Komisi (Wajib Diisi Jika Mengembalikan Laporan)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={catatanRevisiInput}
+                    onChange={(e) => setCatatanRevisiInput(e.target.value)}
+                    placeholder="Contoh: Bukti foto serah terima kurang lengkap, mohon lampirkan BAST resmi..."
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-slate-100 focus:border-rose-500"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
               <button
-                onClick={handleRejectDikembalikan}
-                className="bg-rose-950 hover:bg-rose-900 text-rose-300 border border-rose-800 font-bold text-xs px-4 py-2 rounded-xl transition"
+                type="button"
+                onClick={() => setReviewingItem(null)}
+                className="px-4 py-2 text-slate-400 hover:text-white text-xs font-semibold"
               >
-                Kembalikan / Minta Revisi
+                Tutup
               </button>
-              <button
-                onClick={handleApproveTuntas}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-5 py-2 rounded-xl shadow-lg transition flex items-center gap-1.5"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Setujui & Tandai TUNTAS</span>
-              </button>
+
+              {canVerify ? (
+                <>
+                  <button
+                    onClick={handleRejectDikembalikan}
+                    className="bg-rose-950 hover:bg-rose-900 text-rose-300 border border-rose-800 font-bold text-xs px-4 py-2 rounded-xl transition"
+                  >
+                    Kembalikan / Minta Revisi
+                  </button>
+                  <button
+                    onClick={handleApproveTuntas}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-5 py-2 rounded-xl shadow-lg transition flex items-center gap-1.5"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Setujui & Tandai TUNTAS</span>
+                  </button>
+                </>
+              ) : (
+                <div className="flex items-center gap-1.5 text-slate-400 text-xs bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800 font-mono">
+                  <Lock className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Verifikasi Dibatasi (Admin & Kabag)</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

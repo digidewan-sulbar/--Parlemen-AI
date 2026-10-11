@@ -6,6 +6,7 @@ import { RdpMasterControlView } from './RdpMasterControlView';
 import { RdpOpdEvidencePortalView } from './RdpOpdEvidencePortalView';
 import { RdpWaNotificationEngineView } from './RdpWaNotificationEngineView';
 import { openWhatsAppWithRdpMessage, formatWhatsAppPhone } from './rdpWaUtils';
+import { AuthUser } from '../../types';
 import {
   BarChart3,
   ShieldCheck,
@@ -19,7 +20,11 @@ import {
   Layers,
 } from 'lucide-react';
 
-export const ETrackingRdpMain: React.FC = () => {
+interface ETrackingRdpMainProps {
+  currentUser?: AuthUser | null;
+}
+
+export const ETrackingRdpMain: React.FC<ETrackingRdpMainProps> = ({ currentUser }) => {
   const [dataList, setDataList] = useState<RdpRekomendasiExtended[]>(INITIAL_RDP_EXTENDED_DATA);
   const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'MASTER_CONTROL' | 'EVIDENCE_VAULT' | 'WA_ENGINE'>('DASHBOARD');
   const [selectedRdpForVault, setSelectedRdpForVault] = useState<RdpRekomendasiExtended>(INITIAL_RDP_EXTENDED_DATA[0]);
@@ -154,6 +159,7 @@ export const ETrackingRdpMain: React.FC = () => {
       {activeTab === 'MASTER_CONTROL' && (
         <RdpMasterControlView
           dataList={dataList}
+          currentUser={currentUser}
           onAddRecommendation={handleAddRecommendation}
           onUpdateRecommendation={handleUpdateRecommendation}
           onDeleteRecommendation={handleDeleteRecommendation}

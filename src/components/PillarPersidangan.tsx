@@ -7,6 +7,7 @@ import { RdpFormModal } from './forms/RdpFormModal';
 import { AudioRecorderAndUploader } from './AudioRecorderAndUploader';
 import { RisalahPdfModal } from './RisalahPdfModal';
 import { triggerDirectPdfDownload } from '../utils/risalahPdf';
+import { triggerDirectWordDownload } from '../utils/risalahWord';
 import { ELegislasiMain } from './e-legislasi/ELegislasiMain';
 import { ETrackingRdpMain } from './e-tracking-rdp/ETrackingRdpMain';
 import { RisalahSmartSearch } from './risalah/RisalahSmartSearch';
@@ -17,6 +18,7 @@ import {
   createAuditLogEntry,
   TAHAPAN_RISALAH_METADATA,
 } from '../utils/risalahTracking';
+import { normalizeTranscriptDocument } from '../utils/indonesianTextNormalizer';
 import {
   FileText,
   Clock,
@@ -32,6 +34,7 @@ import {
   ChevronRight,
   Send,
   Building,
+  Building2,
   Check,
   FileCheck,
   Mic,
@@ -102,6 +105,26 @@ export const PillarPersidangan: React.FC<Props> = ({
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
   const [trackingTargetRisalah, setTrackingTargetRisalah] = useState<RisalahItem | null>(null);
+
+  // Sub-View Layout for Modul 1: E-Risalah Berbantu AI ('editor' | 'smart-search' | 'arsip')
+  const [risalahSubView, setRisalahSubView] = useState<'editor' | 'smart-search' | 'arsip'>('editor');
+  const [arsipSearch, setArsipSearch] = useState('');
+  const [arsipJenisFilter, setArsipJenisFilter] = useState<string>('SEMUA');
+  const [arsipTahapFilter, setArsipTahapFilter] = useState<string>('SEMUA');
+
+  // Filtered Risalah List for Dedicated Archive View
+  const filteredArsipList = risalahList.filter((r) => {
+    const q = arsipSearch.toLowerCase().trim();
+    const matchSearch =
+      !q ||
+      r.nomorRisalah.toLowerCase().includes(q) ||
+      r.judulRapat.toLowerCase().includes(q) ||
+      r.pimpinanRapat.toLowerCase().includes(q) ||
+      (r.namaNotulis && r.namaNotulis.toLowerCase().includes(q));
+    const matchJenis = arsipJenisFilter === 'SEMUA' || r.jenisRapat === arsipJenisFilter;
+    const matchTahap = arsipTahapFilter === 'SEMUA' || (r.statusTahap || '').includes(arsipTahapFilter);
+    return matchSearch && matchJenis && matchTahap;
+  });
 
   // Delete Confirmation Modal State
   const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<{
@@ -326,14 +349,462 @@ export const PillarPersidangan: React.FC<Props> = ({
       {/* TAB 1: MODUL 1 - E-RISALAH AI */}
       {activeTab === 'risalah' && (
         <div className="space-y-6">
-          {/* Fitur 1: Smart Search / Pencarian Pintar Modul 1 */}
-          <RisalahSmartSearch
-            risalahList={risalahList}
-            selectedRisalahId={selectedRisalah?.id || null}
-            onSelectRisalah={(item) => setSelectedRisalah(item)}
-          />
+          {/* Sub-Navigasi Menu Utama Modul 1: E-Risalah AI */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-bold text-sm text-slate-100">
+                    Modul 1 : E-Risalah Berbantu AI
+                  </h3>
+                  <span className="bg-emerald-950 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-700/60 font-mono">
+                    {risalahSubView === 'editor'
+                      ? 'Lembar Kerja & Olah Risalah'
+                      : risalahSubView === 'smart-search'
+                      ? 'Pencarian Pintar NLP'
+                      : 'Arsip & Pengelolaan Dokumen'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Transkripsi audio rapat paripurna & komisi, pencarian semantik cerdas (NLP), dan tata kelola arsip persidangan DPRD Sulbar.
+                </p>
+              </div>
+            </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Menu Tombol Cepat Sub-Modul - Hanya Lembar Kerja Risalah */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setRisalahSubView('editor')}
+                className={`font-bold text-xs px-4 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm active:scale-95 ${
+                  risalahSubView === 'editor'
+                    ? 'bg-emerald-500 text-slate-950 font-extrabold shadow-emerald-500/20 ring-2 ring-emerald-300'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                }`}
+                title="Lembar Kerja Olah Transkrip & Naskah Risalah Resmi"
+              >
+                <Mic className="w-3.5 h-3.5" />
+                <span>Lembar Kerja Risalah</span>
+              </button>
+            </div>
+          </div>
+
+          {/* HALAMAN / MENU 1: PENCARIAN PINTAR E-RISALAH (SMART SEARCH NLP) */}
+          {risalahSubView === 'smart-search' && (
+            <div className="space-y-4 animate-fadeIn">
+              <div className="bg-gradient-to-r from-slate-900 via-emerald-950/40 to-slate-900 border border-emerald-800/40 rounded-2xl p-5 text-slate-100 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-300 text-xs px-3 py-1 rounded-full border border-emerald-500/30">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>HALAMAN PENCARIAN PINTAR E-RISALAH (SMART SEARCH NLP)</span>
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-100">
+                    Eksplorasi Semantik & NLP Dokumen Risalah Sidang DPRD Sulawesi Barat
+                  </h3>
+                  <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+                    Telusuri secara mendalam notulensi rapat, transkrip pernyataan pimpinan & anggota, nada perdebatan fraksi, dan agenda ranperda menggunakan pemrosesan bahasa alami (Natural Language Processing).
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setRisalahSubView('editor')}
+                    className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition active:scale-95"
+                  >
+                    <Mic className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Kembali ke Lembar Kerja</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRisalahSubView('arsip')}
+                    className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition active:scale-95"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Menu Arsip Dokumen</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingRisalah(null);
+                      setIsRisalahModalOpen(true);
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow transition active:scale-95"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Tambah Risalah Manual</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Komponen Smart Search NLP */}
+              <RisalahSmartSearch
+                risalahList={risalahList}
+                selectedRisalahId={selectedRisalah?.id || null}
+                onSelectRisalah={(item) => {
+                  setSelectedRisalah(item);
+                  setRisalahSubView('editor');
+                  triggerToast('Dokumen Dibuka', `Memuat "${item.nomorRisalah}" di Lembar Kerja Risalah.`, 'success');
+                }}
+              />
+            </div>
+          )}
+
+          {/* HALAMAN / MENU 2: ARSIP & PENGELOLAAN DOKUMEN RISALAH RAPAT */}
+          {risalahSubView === 'arsip' && (
+            <div className="space-y-6 animate-fadeIn">
+              {/* Header Banner */}
+              <div className="bg-gradient-to-r from-slate-900 via-emerald-950/40 to-slate-900 border border-emerald-800/40 rounded-2xl p-5 text-slate-100 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-300 text-xs px-3 py-1 rounded-full border border-emerald-500/30">
+                    <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>MENU ARSIP & PENGELOLAAN DOKUMEN RISALAH RAPAT</span>
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-100">
+                    Pusat Inventarisasi & Tata Kelola Dokumen Risalah Persidangan DPRD
+                  </h3>
+                  <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+                    Kelola seluruh arsip naskah risalah resmi DPRD Provinsi Sulawesi Barat, pantau 6 tahapan rekam jejak, verifikasi notulis, ekspor berkas PDF A4 ber-Kop Surat resmi, dan cetak dokumen.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setRisalahSubView('editor')}
+                    className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition active:scale-95"
+                  >
+                    <Mic className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Kembali ke Lembar Kerja</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRisalahSubView('smart-search')}
+                    className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition active:scale-95"
+                  >
+                    <Search className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Pencarian Pintar NLP</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingRisalah(null);
+                      setIsRisalahModalOpen(true);
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow transition active:scale-95"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Tambah Risalah Manual</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Statistics Overview Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow">
+                  <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
+                    <span>Total Arsip Risalah</span>
+                    <FileText className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <div className="text-2xl font-black text-slate-100 font-mono">
+                    {risalahList.length}
+                  </div>
+                  <span className="text-[10px] text-slate-500">Tercatat di Database</span>
+                </div>
+
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow">
+                  <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
+                    <span>Naskah Disahkan & Sah</span>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <div className="text-2xl font-black text-emerald-400 font-mono">
+                    {risalahList.filter((r) => (r.statusTahap || '').includes('6') || (r.progressPersen || 0) === 100).length}
+                  </div>
+                  <span className="text-[10px] text-emerald-500/80">Tahap 6: Final & Distribusi</span>
+                </div>
+
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow">
+                  <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
+                    <span>Verifikasi & Telaah</span>
+                    <Clock className="w-4 h-4 text-amber-400" />
+                  </div>
+                  <div className="text-2xl font-black text-amber-400 font-mono">
+                    {risalahList.filter((r) => !(r.statusTahap || '').includes('6') && (r.progressPersen || 0) < 100).length}
+                  </div>
+                  <span className="text-[10px] text-amber-500/80">Tahap 1 - 5 dalam Proses</span>
+                </div>
+
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow">
+                  <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
+                    <span>Rapat Paripurna</span>
+                    <Building className="w-4 h-4 text-blue-400" />
+                  </div>
+                  <div className="text-2xl font-black text-blue-400 font-mono">
+                    {risalahList.filter((r) => r.jenisRapat === 'Rapat Paripurna').length}
+                  </div>
+                  <span className="text-[10px] text-blue-500/80">Sidang Tertinggi DPRD</span>
+                </div>
+              </div>
+
+              {/* Filter & Search Bar */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-3 shadow">
+                <div className="relative w-full md:w-96">
+                  <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={arsipSearch}
+                    onChange={(e) => setArsipSearch(e.target.value)}
+                    placeholder="Cari nomor risalah, judul rapat, pimpinan, notulis..."
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                  />
+                  {arsipSearch && (
+                    <button
+                      onClick={() => setArsipSearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 w-full md:w-auto flex-wrap text-xs">
+                  <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5">
+                    <Filter className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="text-slate-500">Jenis:</span>
+                    <select
+                      value={arsipJenisFilter}
+                      onChange={(e) => setArsipJenisFilter(e.target.value)}
+                      className="bg-transparent text-slate-200 font-semibold focus:outline-none cursor-pointer"
+                    >
+                      <option value="SEMUA" className="bg-slate-950">Semua Jenis Rapat</option>
+                      <option value="Rapat Paripurna" className="bg-slate-950">Rapat Paripurna</option>
+                      <option value="Rapat Bamus" className="bg-slate-950">Rapat Bamus</option>
+                      <option value="Rapat Dengar Pendapat (RDP)" className="bg-slate-950">RDP</option>
+                      <option value="Rapat Banggar" className="bg-slate-950">Rapat Banggar</option>
+                      <option value="Rapat Komisi I" className="bg-slate-950">Komisi I</option>
+                      <option value="Rapat Komisi II" className="bg-slate-950">Komisi II</option>
+                      <option value="Rapat Komisi III" className="bg-slate-950">Komisi III</option>
+                      <option value="Rapat Komisi IV" className="bg-slate-950">Komisi IV</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5">
+                    <span className="text-slate-500">Tahap:</span>
+                    <select
+                      value={arsipTahapFilter}
+                      onChange={(e) => setArsipTahapFilter(e.target.value)}
+                      className="bg-transparent text-slate-200 font-semibold focus:outline-none cursor-pointer"
+                    >
+                      <option value="SEMUA" className="bg-slate-950">Semua Tahap</option>
+                      <option value="1." className="bg-slate-950">1. Rekaman Audio</option>
+                      <option value="2." className="bg-slate-950">2. Transkripsi AI</option>
+                      <option value="3." className="bg-slate-950">3. Penyusunan Draf</option>
+                      <option value="4." className="bg-slate-950">4. Telaah Notulis</option>
+                      <option value="5." className="bg-slate-950">5. Paraf Kabag</option>
+                      <option value="6." className="bg-slate-950">6. Disahkan Final</option>
+                    </select>
+                  </div>
+
+                  {(arsipSearch || arsipJenisFilter !== 'SEMUA' || arsipTahapFilter !== 'SEMUA') && (
+                    <button
+                      onClick={() => {
+                        setArsipSearch('');
+                        setArsipJenisFilter('SEMUA');
+                        setArsipTahapFilter('SEMUA');
+                      }}
+                      className="text-slate-400 hover:text-emerald-400 text-xs px-2 py-1 underline"
+                    >
+                      Reset Filter
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Tabel Arsip Lengkap */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-slate-100 shadow-xl space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-emerald-400" />
+                    <h4 className="font-bold text-sm text-slate-100">
+                      Daftar Dokumen Risalah Persidangan ({filteredArsipList.length} dari {risalahList.length})
+                    </h4>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setEditingRisalah(null);
+                      setIsRisalahModalOpen(true);
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow transition flex items-center gap-1.5 active:scale-95"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Tambah Risalah Baru</span>
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto scrollbar-thin">
+                  <table className="w-full text-left text-xs text-slate-300">
+                    <thead className="bg-slate-950 text-slate-400 uppercase font-semibold text-[10px]">
+                      <tr>
+                        <th className="p-3">Nomor & Jenis</th>
+                        <th className="p-3">Judul Rapat</th>
+                        <th className="p-3">Pimpinan & Notulis</th>
+                        <th className="p-3">Status Rekam Jejak</th>
+                        <th className="p-3">Tanggal Pelaksanaan</th>
+                        <th className="p-3 text-right">Aksi & Pengelolaan</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60">
+                      {filteredArsipList.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="text-center py-10 text-slate-500 text-xs">
+                            Tidak ada dokumen risalah yang sesuai dengan kata kunci atau filter yang dipilih.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredArsipList.map((item) => (
+                          <tr
+                            key={item.id}
+                            className={`hover:bg-slate-800/50 transition ${
+                              selectedRisalah?.id === item.id ? 'bg-slate-800/80 text-white' : ''
+                            }`}
+                          >
+                            <td className="p-3">
+                              <span className="font-mono font-bold text-emerald-400 block">
+                                {item.nomorRisalah}
+                              </span>
+                              <span className="text-[10px] text-slate-400">{item.jenisRapat}</span>
+                            </td>
+                            <td className="p-3 font-medium max-w-xs">
+                              <span className="line-clamp-2 text-slate-200 font-semibold">{item.judulRapat}</span>
+                              <span className="text-[10px] text-slate-500 line-clamp-1">{item.hariTanggalWaktu}</span>
+                            </td>
+                            <td className="p-3">
+                              <span className="font-medium text-slate-200 block text-[11px]">
+                                {item.pimpinanRapat}
+                              </span>
+                              <span className="text-[10px] font-mono text-slate-400">
+                                Notulis: {item.namaNotulis || 'Notulis DPRD'}
+                              </span>
+                            </td>
+                            <td className="p-3 whitespace-nowrap">
+                              {(() => {
+                                const itemTahap = item.statusTahap || '6. Disahkan & Final';
+                                const meta = TAHAPAN_RISALAH_METADATA[itemTahap];
+                                const pct = item.progressPersen !== undefined ? item.progressPersen : 100;
+                                return (
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-1.5">
+                                      <span
+                                        className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${
+                                          meta?.warnaBadge || 'bg-slate-800 text-slate-300'
+                                        }`}
+                                      >
+                                        {meta?.labelSingkat || itemTahap}
+                                      </span>
+                                      <span className="font-mono text-[10px] text-emerald-400 font-semibold">
+                                        {pct}%
+                                      </span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setTrackingTargetRisalah(item);
+                                        setIsTrackingModalOpen(true);
+                                      }}
+                                      className="text-[10px] text-slate-400 hover:text-emerald-400 flex items-center gap-1 transition underline decoration-slate-600 hover:decoration-emerald-400"
+                                    >
+                                      <History className="w-2.5 h-2.5" />
+                                      <span>Update Log / Tahapan</span>
+                                    </button>
+                                  </div>
+                                );
+                              })()}
+                            </td>
+                            <td className="p-3 text-slate-400 text-[11px] whitespace-nowrap">
+                              {item.createdDate}
+                            </td>
+                            <td className="p-3 text-right whitespace-nowrap">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={() => {
+                                    setSelectedRisalah(item);
+                                    setRisalahSubView('editor');
+                                    triggerToast('Dokumen Dibuka', `Membuka "${item.nomorRisalah}" di Lembar Kerja Risalah.`, 'success');
+                                  }}
+                                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[11px] font-bold transition shadow active:scale-95"
+                                  title="Buka Dokumen di Lembar Kerja Risalah"
+                                >
+                                  Buka / Teliti
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setEditingRisalah(item);
+                                    setIsRisalahModalOpen(true);
+                                  }}
+                                  className="p-1.5 bg-slate-800 hover:bg-emerald-900/60 text-emerald-400 rounded-lg transition"
+                                  title="Edit Risalah"
+                                >
+                                  <Edit className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setSelectedRisalah(item);
+                                    setIsPdfModalOpen(true);
+                                  }}
+                                  className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition border border-slate-700"
+                                  title="Pratinjau Cetak Kop Surat Resmi A4"
+                                >
+                                  <Printer className="w-3.5 h-3.5 text-emerald-400" />
+                                </button>
+                                <button
+                                  onClick={() => triggerDirectPdfDownload(item)}
+                                  className="px-2.5 py-1 bg-slate-800 hover:bg-emerald-950 text-emerald-300 border border-slate-700 rounded-lg text-[11px] font-bold transition flex items-center gap-1"
+                                  title="Unduh File PDF Dokumen Risalah"
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                  <span>PDF</span>
+                                </button>
+                                <button
+                                  onClick={() => triggerDirectWordDownload(item)}
+                                  className="px-2.5 py-1 bg-slate-800 hover:bg-blue-950 text-blue-300 border border-slate-700 rounded-lg text-[11px] font-bold transition flex items-center gap-1"
+                                  title="Unduh Berkas Microsoft Word (.doc)"
+                                >
+                                  <FileText className="w-3.5 h-3.5" />
+                                  <span>Word</span>
+                                </button>
+                                {onDeleteRisalah && (
+                                  <button
+                                    onClick={() => {
+                                      setDeleteConfirmTarget({
+                                        type: 'risalah',
+                                        id: item.id,
+                                        title: item.judulRapat,
+                                      });
+                                    }}
+                                    className="p-1.5 bg-slate-800 hover:bg-red-950/80 text-red-400 rounded-lg transition"
+                                    title="Hapus Risalah"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* HALAMAN / MENU 3: LEMBAR KERJA / EDITOR DOKUMEN RISALAH */}
+          {risalahSubView === 'editor' && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-fadeIn">
           {/* Form Input / Direct Processing */}
           <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-5 text-slate-100 shadow-md flex flex-col justify-between space-y-4">
             <div>
@@ -455,28 +926,31 @@ export const PillarPersidangan: React.FC<Props> = ({
                       const colonMatch = !bracketMatch ? line.match(/^([^:]+):\s*(.*)$/) : null;
 
                       if (bracketMatch) {
+                        const rawStmt = bracketMatch[2].trim() || line;
                         parsedSpeakerTranscripts.push({
                           pembicara: bracketMatch[1].trim(),
                           timestamp: 'Sesi Perekaman Audio',
-                          pernyataan: bracketMatch[2].trim() || line,
+                          pernyataan: normalizeTranscriptDocument(rawStmt).normalizedText || rawStmt,
                           sentimen: 'Netral',
                         });
                       } else if (colonMatch && colonMatch[1].length < 65) {
+                        const rawStmt = colonMatch[2].trim() || line;
                         parsedSpeakerTranscripts.push({
                           pembicara: colonMatch[1].trim(),
                           timestamp: 'Sesi Perekaman Audio',
-                          pernyataan: colonMatch[2].trim() || line,
+                          pernyataan: normalizeTranscriptDocument(rawStmt).normalizedText || rawStmt,
                           sentimen: 'Netral',
                         });
                       } else {
                         if (parsedSpeakerTranscripts.length > 0) {
+                          const additional = normalizeTranscriptDocument(line).normalizedText || line;
                           parsedSpeakerTranscripts[parsedSpeakerTranscripts.length - 1].pernyataan +=
-                            ' ' + line;
+                            ' ' + additional;
                         } else {
                           parsedSpeakerTranscripts.push({
                             pembicara: 'Pembicara Persidangan',
                             timestamp: 'Sesi Perekaman Audio',
-                            pernyataan: line,
+                            pernyataan: normalizeTranscriptDocument(line).normalizedText || line,
                             sentimen: 'Netral',
                           });
                         }
@@ -490,7 +964,7 @@ export const PillarPersidangan: React.FC<Props> = ({
                             {
                               pembicara: 'Transkrip Hasil Perekaman Audio',
                               timestamp: '00:00 - Selesai',
-                              pernyataan: textToProcess,
+                              pernyataan: normalizeTranscriptDocument(textToProcess).normalizedText || textToProcess,
                               sentimen: 'Netral' as const,
                             },
                           ];
@@ -559,7 +1033,7 @@ export const PillarPersidangan: React.FC<Props> = ({
           {/* Risalah Display View */}
           <div className="lg:col-span-7 space-y-4">
             {/* List Selector & Action Controls */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 text-slate-200">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 text-slate-200 shadow-md">
               <div className="flex items-center gap-2 text-xs flex-wrap">
                 <span className="text-slate-400 font-medium">Pilih Arsip Risalah:</span>
                 <select
@@ -578,16 +1052,63 @@ export const PillarPersidangan: React.FC<Props> = ({
                 </select>
               </div>
 
-              <div className="flex items-center gap-2">
+              {/* Menu Tombol Aksi: Pencarian Pintar NLP, Arsip Dokumen, dan Tambah Risalah Manual (Bersebelahan) */}
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
+                  type="button"
+                  onClick={() => setRisalahSubView('smart-search')}
+                  className="bg-slate-800 hover:bg-emerald-950/80 hover:text-emerald-300 text-slate-200 border border-slate-700 hover:border-emerald-600/70 font-bold text-xs px-3.5 py-1.5 rounded-xl shadow transition flex items-center gap-1.5 group active:scale-95"
+                  title="Buka Halaman Pencarian Pintar E-Risalah (Smart Search NLP)"
+                >
+                  <Search className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition" />
+                  <span>Pencarian Pintar E-Risalah (Smart Search NLP)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setRisalahSubView('arsip')}
+                  className="bg-slate-800 hover:bg-emerald-950/80 hover:text-emerald-300 text-slate-200 border border-slate-700 hover:border-emerald-600/70 font-bold text-xs px-3.5 py-1.5 rounded-xl shadow transition flex items-center gap-1.5 group active:scale-95"
+                  title="Buka Menu Arsip & Pengelolaan Dokumen Risalah Rapat"
+                >
+                  <FileText className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition" />
+                  <span>Menu Arsip & Pengelolaan Dokumen</span>
+                  <span className="bg-slate-950 text-emerald-400 text-[10px] px-1.5 py-0.5 rounded-full font-mono border border-slate-800">
+                    {risalahList.length}
+                  </span>
+                </button>
+
+                {/* Tombol Menu: Rekam Jejak Proses & Validasi Risalah */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRisalahSubView('editor');
+                    setTimeout(() => {
+                      const el = document.getElementById('rekam-jejak-section');
+                      if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        el.classList.add('ring-2', 'ring-emerald-400');
+                        setTimeout(() => el.classList.remove('ring-2', 'ring-emerald-400'), 2500);
+                      }
+                    }, 50);
+                  }}
+                  className="bg-slate-800 hover:bg-emerald-950/80 hover:text-emerald-300 text-slate-200 border border-slate-700 hover:border-emerald-600/70 font-bold text-xs px-3.5 py-1.5 rounded-xl shadow transition flex items-center gap-1.5 group active:scale-95"
+                  title="Lihat Alur 6 Tahapan Standar Penatausahaan Risalah Sidang & Rekam Jejak Validasi"
+                >
+                  <History className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition" />
+                  <span>Rekam Jejak Proses & Validasi Risalah</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => {
                     setEditingRisalah(null);
                     setIsRisalahModalOpen(true);
                   }}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow transition flex items-center gap-1.5"
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow transition flex items-center gap-1.5 active:scale-95"
+                  title="Tambah Dokumen Risalah Rapat Baru Secara Manual"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>Tambah Risalah Manual</span>
+                  <span>+ Tambah Risalah Manual</span>
                 </button>
               </div>
             </div>
@@ -595,8 +1116,8 @@ export const PillarPersidangan: React.FC<Props> = ({
             {selectedRisalah ? (
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-slate-100 shadow-xl space-y-6">
                 {/* Toolbar Resmi & Tombol Aksi Dokumen E-Risalah Resmi Sulbar */}
-                <div className="bg-slate-950/90 border border-slate-800/90 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
-                  {/* Left: Official Badges & Identifiers */}
+                <div className="bg-slate-950/90 border border-slate-800/90 rounded-2xl p-4 shadow-sm space-y-3">
+                  {/* Baris 1: Official Badges & Identifiers */}
                   <div className="flex items-center gap-2.5 flex-wrap">
                     <span className="bg-emerald-950 text-emerald-300 border border-emerald-700/80 px-3.5 py-1.5 rounded-full text-xs font-bold tracking-wide flex items-center gap-1.5 shadow-sm">
                       <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
@@ -605,76 +1126,96 @@ export const PillarPersidangan: React.FC<Props> = ({
                     <span className="font-mono text-xs text-emerald-400 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800 font-bold">
                       {selectedRisalah.nomorRisalah}
                     </span>
-                    {(() => {
-                      const itemTahap = selectedRisalah.statusTahap || '4. Verifikasi & Telaah Notulis';
-                      const meta = TAHAPAN_RISALAH_METADATA[itemTahap];
-                      const pct = selectedRisalah.progressPersen !== undefined ? selectedRisalah.progressPersen : 75;
-                      return (
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1.5 ${meta?.warnaBadge || 'bg-slate-800 text-slate-300'}`}>
-                          <span>{meta?.labelSingkat || itemTahap}</span>
-                          <span className="font-mono opacity-80">({pct}%)</span>
-                        </span>
-                      );
-                    })()}
                   </div>
 
-                  {/* Right: Primary Interactive Action Buttons (Edit Risalah, Pratinjau Cetak, Unduh PDF, Hapus) */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingRisalah(selectedRisalah);
-                        setIsRisalahModalOpen(true);
-                      }}
-                      className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95"
-                      title="Edit Dokumen Risalah Ini"
-                    >
-                      <Edit className="w-3.5 h-3.5" />
-                      <span>Edit Risalah</span>
-                    </button>
+                  {/* Baris 2: Sejajar antara Status Tahap ("Disahkan & Final 100%") dan Seluruh Tombol Aksi */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-900/80">
+                    {/* Left: Status Tahap (Disahkan & Final 100%) */}
+                    <div className="flex items-center gap-2">
+                      {(() => {
+                        const itemTahap = selectedRisalah.statusTahap || '4. Verifikasi & Telaah Notulis';
+                        const meta = TAHAPAN_RISALAH_METADATA[itemTahap];
+                        const pct = selectedRisalah.progressPersen !== undefined ? selectedRisalah.progressPersen : 75;
+                        return (
+                          <span className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 ${meta?.warnaBadge || 'bg-slate-800 text-slate-300'}`}>
+                            <span>{meta?.labelSingkat || itemTahap}</span>
+                            <span className="font-mono opacity-80">({pct}%)</span>
+                          </span>
+                        );
+                      })()}
+                    </div>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsPdfModalOpen(true);
-                      }}
-                      className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-600 rounded-xl transition text-xs font-semibold flex items-center gap-1.5 shadow-sm active:scale-95"
-                      title="Pratinjau layout cetak A4 dengan Kop Surat Resmi"
-                    >
-                      <Printer className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Pratinjau Cetak</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        triggerDirectPdfDownload(selectedRisalah);
-                        triggerToast('Unduh PDF', 'Menyiapkan berkas PDF resmi untuk diunduh/dicetak...', 'info');
-                      }}
-                      className="px-3 py-2 bg-slate-800 hover:bg-emerald-950/70 text-emerald-300 border border-slate-700 hover:border-emerald-700/60 rounded-xl transition text-xs font-semibold flex items-center gap-1.5 shadow-sm active:scale-95"
-                      title="Unduh File PDF Dokumen Risalah"
-                    >
-                      <Download className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Unduh PDF</span>
-                    </button>
-
-                    {onDeleteRisalah && (
+                    {/* Right: Tombol-tombol Sejajar (Edit Risalah, Pratinjau Cetak, Unduh PDF, Hapus) */}
+                    <div className="flex items-center gap-2 flex-wrap">
                       <button
                         type="button"
                         onClick={() => {
-                          setDeleteConfirmTarget({
-                            type: 'risalah',
-                            id: selectedRisalah.id,
-                            title: selectedRisalah.judulRapat,
-                          });
+                          setEditingRisalah(selectedRisalah);
+                          setIsRisalahModalOpen(true);
                         }}
-                        className="px-3 py-2 bg-red-950/40 hover:bg-red-600 text-red-400 hover:text-white border border-red-800/60 hover:border-red-500 rounded-xl transition text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95"
-                        title="Hapus Dokumen Risalah Ini"
+                        className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95"
+                        title="Edit Dokumen Risalah Ini"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>Hapus</span>
+                        <Edit className="w-3.5 h-3.5" />
+                        <span>Edit Risalah</span>
                       </button>
-                    )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsPdfModalOpen(true);
+                        }}
+                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-600 rounded-xl transition text-xs font-semibold flex items-center gap-1.5 shadow-sm active:scale-95"
+                        title="Pratinjau layout cetak A4 dengan Kop Surat Resmi"
+                      >
+                        <Printer className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Pratinjau Cetak</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerDirectPdfDownload(selectedRisalah);
+                          triggerToast('Unduh PDF', 'Menyiapkan berkas PDF resmi untuk diunduh/dicetak...', 'info');
+                        }}
+                        className="px-3 py-1.5 bg-slate-800 hover:bg-emerald-950/70 text-emerald-300 border border-slate-700 hover:border-emerald-700/60 rounded-xl transition text-xs font-semibold flex items-center gap-1.5 shadow-sm active:scale-95"
+                        title="Unduh File PDF Dokumen Risalah"
+                      >
+                        <Download className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Unduh PDF</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerDirectWordDownload(selectedRisalah);
+                          triggerToast('Unduh Word', 'Mengunduh berkas risalah dalam format Microsoft Word (.doc)...', 'success');
+                        }}
+                        className="px-3 py-1.5 bg-slate-800 hover:bg-blue-950/70 text-blue-300 border border-slate-700 hover:border-blue-700/60 rounded-xl transition text-xs font-semibold flex items-center gap-1.5 shadow-sm active:scale-95"
+                        title="Unduh Berkas Format Microsoft Word (.doc)"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-blue-400" />
+                        <span>Unduh Word</span>
+                      </button>
+
+                      {onDeleteRisalah && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDeleteConfirmTarget({
+                              type: 'risalah',
+                              id: selectedRisalah.id,
+                              title: selectedRisalah.judulRapat,
+                            });
+                          }}
+                          className="px-3 py-1.5 bg-red-950/40 hover:bg-red-600 text-red-400 hover:text-white border border-red-800/60 hover:border-red-500 rounded-xl transition text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95"
+                          title="Hapus Dokumen Risalah Ini"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Hapus</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -693,13 +1234,15 @@ export const PillarPersidangan: React.FC<Props> = ({
                 </div>
 
                 {/* Fitur 2: Rekam Jejak / Tracking Proses Pembuatan Risalah */}
-                <RisalahTrackingSection
-                  risalah={selectedRisalah}
-                  onOpenUpdateModal={() => {
-                    setTrackingTargetRisalah(selectedRisalah);
-                    setIsTrackingModalOpen(true);
-                  }}
-                />
+                <div id="rekam-jejak-section" className="transition-all duration-300 rounded-2xl scroll-mt-6">
+                  <RisalahTrackingSection
+                    risalah={selectedRisalah}
+                    onOpenUpdateModal={() => {
+                      setTrackingTargetRisalah(selectedRisalah);
+                      setIsTrackingModalOpen(true);
+                    }}
+                  />
+                </div>
 
                 {/* Section A: Hari / Tanggal / Waktu & Jenis */}
                 <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs space-y-2">
@@ -708,6 +1251,12 @@ export const PillarPersidangan: React.FC<Props> = ({
                       <span className="text-slate-400 block text-[10px] uppercase font-bold">a. Hari / Tanggal / Waktu & Jenis Rapat</span>
                       <span className="font-semibold text-slate-200">{selectedRisalah.hariTanggalWaktu}</span>
                       <span className="ml-2 text-emerald-400 font-medium">({selectedRisalah.jenisRapat})</span>
+                      {selectedRisalah.ruanganRapat && (
+                        <div className="mt-1 flex items-center gap-1.5 text-amber-300 font-medium text-[11px]">
+                          <Building2 className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Ruangan: {selectedRisalah.ruanganRapat}</span>
+                        </div>
+                      )}
                     </div>
                     <div>
                       <span className="text-slate-400 block text-[10px] uppercase font-bold">b. Pimpinan & Anggota DPRD Hadir</span>
@@ -859,6 +1408,18 @@ export const PillarPersidangan: React.FC<Props> = ({
                     <button
                       type="button"
                       onClick={() => {
+                        triggerDirectWordDownload(selectedRisalah);
+                        triggerToast('Unduh Word', 'Mengunduh berkas risalah dalam format Microsoft Word (.doc)...', 'success');
+                      }}
+                      className="bg-slate-800 hover:bg-blue-950/60 text-blue-300 font-semibold px-3.5 py-2 rounded-xl border border-blue-800/60 flex items-center gap-1.5 transition shadow text-xs active:scale-95"
+                      title="Unduh Berkas Format Microsoft Word (.doc)"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-blue-400" />
+                      <span>Unduh Word</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
                         const jsonStr = JSON.stringify(selectedRisalah, null, 2);
                         const blob = new Blob([jsonStr], { type: 'application/json' });
                         const url = URL.createObjectURL(blob);
@@ -901,7 +1462,7 @@ export const PillarPersidangan: React.FC<Props> = ({
                 </div>
                 <h4 className="font-bold text-sm text-slate-200">Belum Ada Dokumen Risalah Terpilih</h4>
                 <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-                  Pilih salah satu risalah dari tabel arsip di bawah, gunakan fitur Pencarian Pintar (Smart Search), atau buat risalah rapat baru secara manual.
+                  Pilih salah satu risalah dari dropdown atau menu arsip dokumen, gunakan fitur Pencarian Pintar (Smart Search), atau buat risalah rapat baru secara manual.
                 </p>
                 <div className="pt-1">
                   <button
@@ -918,160 +1479,9 @@ export const PillarPersidangan: React.FC<Props> = ({
                 </div>
               </div>
             )}
-
-            {/* Tabel Arsip Dokumen Risalah */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-slate-100 shadow-xl space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-emerald-400" />
-                  <h4 className="font-bold text-sm text-slate-100">
-                    Arsip & Pengelolaan Dokumen Risalah Rapat ({risalahList.length})
-                  </h4>
-                </div>
-                <button
-                  onClick={() => {
-                    setEditingRisalah(null);
-                    setIsRisalahModalOpen(true);
-                  }}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow transition flex items-center gap-1.5"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Tambah Risalah Baru</span>
-                </button>
-              </div>
-
-              <div className="overflow-x-auto scrollbar-thin">
-                <table className="w-full text-left text-xs text-slate-300">
-                  <thead className="bg-slate-950 text-slate-400 uppercase font-semibold text-[10px]">
-                    <tr>
-                      <th className="p-3">Nomor & Jenis</th>
-                      <th className="p-3">Judul Rapat</th>
-                      <th className="p-3">Notulis / Pembuat</th>
-                      <th className="p-3">Status Rekam Jejak</th>
-                      <th className="p-3">Tanggal</th>
-                      <th className="p-3 text-right">Aksi & Pengelolaan</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60">
-                    {risalahList.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="text-center py-8 text-slate-500 text-xs">
-                          Belum ada arsip dokumen risalah rapat di sistem.
-                        </td>
-                      </tr>
-                    ) : (
-                      risalahList.map((item) => (
-                      <tr
-                        key={item.id}
-                        className={`hover:bg-slate-800/50 transition ${
-                          selectedRisalah?.id === item.id ? 'bg-slate-800/80 text-white' : ''
-                        }`}
-                      >
-                        <td className="p-3">
-                          <span className="font-mono font-bold text-emerald-400 block">
-                            {item.nomorRisalah}
-                          </span>
-                          <span className="text-[10px] text-slate-400">{item.jenisRapat}</span>
-                        </td>
-                        <td className="p-3 font-medium max-w-xs">
-                          <span className="line-clamp-2">{item.judulRapat}</span>
-                        </td>
-                        <td className="p-3">
-                          <span className="font-medium text-slate-200 block">
-                            {item.namaNotulis || 'Notulis DPRD'}
-                          </span>
-                          <span className="text-[10px] font-mono text-slate-400">
-                            {item.nipNotulis ? `NIP. ${item.nipNotulis}` : '-'}
-                          </span>
-                        </td>
-                        <td className="p-3 whitespace-nowrap">
-                          {(() => {
-                            const itemTahap = item.statusTahap || '6. Disahkan & Final';
-                            const meta = TAHAPAN_RISALAH_METADATA[itemTahap];
-                            const pct = item.progressPersen !== undefined ? item.progressPersen : 100;
-                            return (
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-1.5">
-                                  <span
-                                    className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${
-                                      meta?.warnaBadge || 'bg-slate-800 text-slate-300'
-                                    }`}
-                                  >
-                                    {meta?.labelSingkat || itemTahap}
-                                  </span>
-                                  <span className="font-mono text-[10px] text-emerald-400 font-semibold">
-                                    {pct}%
-                                  </span>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setTrackingTargetRisalah(item);
-                                    setIsTrackingModalOpen(true);
-                                  }}
-                                  className="text-[10px] text-slate-400 hover:text-emerald-400 flex items-center gap-1 transition underline decoration-slate-600 hover:decoration-emerald-400"
-                                >
-                                  <History className="w-2.5 h-2.5" />
-                                  <span>Lihat / Update Log</span>
-                                </button>
-                              </div>
-                            );
-                          })()}
-                        </td>
-                        <td className="p-3 text-slate-400 text-[11px] whitespace-nowrap">
-                          {item.createdDate}
-                        </td>
-                        <td className="p-3 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              onClick={() => setSelectedRisalah(item)}
-                              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[11px] font-medium transition"
-                            >
-                              Buka
-                            </button>
-                            <button
-                              onClick={() => {
-                                setEditingRisalah(item);
-                                setIsRisalahModalOpen(true);
-                              }}
-                              className="p-1.5 bg-slate-800 hover:bg-emerald-900/60 text-emerald-400 rounded-lg transition"
-                              title="Edit Risalah"
-                            >
-                              <Edit className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => triggerDirectPdfDownload(item)}
-                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[11px] font-bold transition flex items-center gap-1 shadow"
-                              title="Unduh File PDF Dokumen Risalah"
-                            >
-                              <Download className="w-3.5 h-3.5" />
-                              <span>Unduh PDF</span>
-                            </button>
-                            {onDeleteRisalah && (
-                              <button
-                                onClick={() => {
-                                  setDeleteConfirmTarget({
-                                    type: 'risalah',
-                                    id: item.id,
-                                    title: item.judulRapat,
-                                  });
-                                }}
-                                className="p-1.5 bg-slate-800 hover:bg-red-950/80 text-red-400 rounded-lg transition"
-                                title="Hapus Risalah"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    )))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
           </div>
         </div>
+      )}
       </div>
       )}
 
@@ -1079,7 +1489,7 @@ export const PillarPersidangan: React.FC<Props> = ({
       {activeTab === 'legislasi' && <ELegislasiMain />}
 
       {/* TAB 3: MODUL 3 - E-TRACKING REKOMENDASI RDP (CORE ENGINE) */}
-      {activeTab === 'rdp' && <ETrackingRdpMain />}
+      {activeTab === 'rdp' && <ETrackingRdpMain currentUser={currentUser} />}
 
 
 

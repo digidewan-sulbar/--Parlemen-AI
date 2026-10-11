@@ -64,6 +64,12 @@ import {
   apiSaveNotification,
   apiMarkNotificationRead,
   apiMarkAllNotificationsRead,
+  apiGetPress,
+  apiSavePress,
+  apiDeletePress,
+  apiGetProtocol,
+  apiSaveProtocol,
+  apiDeleteProtocol,
 } from './utils/supabaseApi';
 
 export default function App() {
@@ -117,13 +123,15 @@ export default function App() {
   // Fetch Live Data from Supabase PostgreSQL on Mount
   const loadSupabaseData = async () => {
     try {
-      const [rData, rpData, rdpData, agData, memData, notifData] = await Promise.all([
+      const [rData, rpData, rdpData, agData, memData, notifData, prData, protoData] = await Promise.all([
         apiGetRisalah(),
         apiGetRanperda(),
         apiGetRdp(),
         apiGetAgenda(),
         apiGetAnggota(),
         apiGetNotifications(),
+        apiGetPress(),
+        apiGetProtocol(),
       ]);
 
       if (rData && rData.length > 0) setRisalahList(rData);
@@ -132,6 +140,8 @@ export default function App() {
       if (agData && agData.length > 0) setAgendaPimpinanList(agData);
       if (memData && memData.length > 0) setMembers(memData);
       if (notifData && notifData.length > 0) setNotifications(notifData);
+      if (prData && prData.length > 0) setPressReleases(prData);
+      if (protoData && protoData.length > 0) setProtocolSheets(protoData);
     } catch (err) {
       console.warn('Gagal memuat data dari Supabase, menggunakan data cache lokal:', err);
     }
@@ -311,27 +321,33 @@ export default function App() {
   // CRUD Handlers for Humas Press Release
   const handleAddPressRelease = (newPress: PressReleaseItem) => {
     setPressReleases((prev) => [newPress, ...prev]);
+    apiSavePress(newPress).catch(console.error);
   };
 
   const handleUpdatePressRelease = (updated: PressReleaseItem) => {
     setPressReleases((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    apiSavePress(updated).catch(console.error);
   };
 
   const handleDeletePressRelease = (id: string) => {
     setPressReleases((prev) => prev.filter((p) => p.id !== id));
+    apiDeletePress(id).catch(console.error);
   };
 
   // CRUD Handlers for Protocol Briefing
   const handleAddProtocolSheet = (newProto: ProtocolBriefingSheetItem) => {
     setProtocolSheets((prev) => [newProto, ...prev]);
+    apiSaveProtocol(newProto).catch(console.error);
   };
 
   const handleUpdateProtocolSheet = (updated: ProtocolBriefingSheetItem) => {
     setProtocolSheets((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    apiSaveProtocol(updated).catch(console.error);
   };
 
   const handleDeleteProtocolSheet = (id: string) => {
     setProtocolSheets((prev) => prev.filter((p) => p.id !== id));
+    apiDeleteProtocol(id).catch(console.error);
   };
 
   const handleApplyAiResult = (data: {

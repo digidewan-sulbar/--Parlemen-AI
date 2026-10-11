@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { RisalahItem } from '../types';
 import { X, Printer, Download, FileText, CheckCircle2 } from 'lucide-react';
 import { triggerDirectPdfDownload } from '../utils/risalahPdf';
+import { triggerDirectWordDownload } from '../utils/risalahWord';
 
 interface Props {
   isOpen: boolean;
@@ -21,6 +22,10 @@ export const RisalahPdfModal: React.FC<Props> = ({ isOpen, onClose, risalah }) =
     triggerDirectPdfDownload(risalah);
   };
 
+  const handleDownloadWord = () => {
+    triggerDirectWordDownload(risalah);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
       <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl text-slate-100 shadow-2xl overflow-hidden my-auto flex flex-col max-h-[95vh]">
@@ -35,15 +40,24 @@ export const RisalahPdfModal: React.FC<Props> = ({ isOpen, onClose, risalah }) =
                 Pratinjau Dokumen Risalah Rapat (Format Kop Resmi Cetak)
               </h3>
               <p className="text-xs text-slate-400">
-                Dokumen Tata Naskah DPRD Provinsi Sulawesi Barat
+                Dokumen Tata Naskah DPRD Provinsi Sulawesi Barat &bull; Standar Baku
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <button
+              onClick={handleDownloadWord}
+              className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 shadow-lg active:scale-95"
+              title="Unduh Berkas Microsoft Word (.doc)"
+            >
+              <Download className="w-4 h-4" />
+              <span>Unduh Word (.doc)</span>
+            </button>
+            <button
               onClick={handlePrintPdf}
-              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl transition flex items-center gap-1.5 shadow-lg"
+              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 shadow-lg active:scale-95"
+              title="Cetak atau Unduh PDF A4 Kop Resmi"
             >
               <Printer className="w-4 h-4" />
               <span>Cetak / Unduh PDF</span>
@@ -51,6 +65,7 @@ export const RisalahPdfModal: React.FC<Props> = ({ isOpen, onClose, risalah }) =
             <button
               onClick={onClose}
               className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition"
+              title="Tutup"
             >
               <X className="w-5 h-5" />
             </button>
@@ -84,7 +99,7 @@ export const RisalahPdfModal: React.FC<Props> = ({ isOpen, onClose, risalah }) =
                     Jalan Abdul Malik Pattana Endeng, Rangas, Simboro, Kabupaten Mamuju, Sulawesi Barat 91512
                   </p>
                   <p className="text-[10px] text-gray-800 my-0">
-                    Laman: dprd.sulbarprov.go.id | Pos-el: sekretariat@dprd.sulbarprov.go.id
+                    Telepon: (0426) 2322334 | Pos-el: sekretariat@dprd.sulbarprov.go.id | Laman: dprd.sulbarprov.go.id
                   </p>
                 </div>
               </div>
@@ -119,6 +134,15 @@ export const RisalahPdfModal: React.FC<Props> = ({ isOpen, onClose, risalah }) =
                   <td className="py-1">:</td>
                   <td className="py-1">{risalah.hariTanggalWaktu}</td>
                 </tr>
+                {risalah.ruanganRapat && (
+                  <tr>
+                    <td className="font-bold py-1">Ruangan / Tempat Rapat</td>
+                    <td className="py-1">:</td>
+                    <td className="py-1 font-semibold text-slate-900">
+                      {risalah.ruanganRapat} (Kompleks Kantor DPRD Sulbar)
+                    </td>
+                  </tr>
+                )}
                 <tr>
                   <td className="font-bold py-1">Pimpinan Rapat</td>
                   <td className="py-1">:</td>
@@ -173,7 +197,7 @@ export const RisalahPdfModal: React.FC<Props> = ({ isOpen, onClose, risalah }) =
             {risalah.transkripPembicara && risalah.transkripPembicara.length > 0 && (
               <div className="section-box mb-6">
                 <h4 className="section-title text-xs font-bold uppercase border-b border-black pb-1 mb-2">
-                  III. CATATAN PETIKAN TRANSKRIP PEMBICARA DEWAN
+                  III. CATATAN PETIKAN TRANSKRIP PEMBICARA PERSIDANGAN
                 </h4>
                 <div className="space-y-2 text-xs">
                   {risalah.transkripPembicara.map((t, idx) => (

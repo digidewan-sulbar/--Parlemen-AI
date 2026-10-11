@@ -106,6 +106,7 @@ export interface RisalahItem {
   judulRapat: string;
   jenisRapat: JenisRapat;
   hariTanggalWaktu: string;
+  ruanganRapat?: string;
   pimpinanRapat: string;
   anggotaHadir: string;
   transkripPembicara: TranskripPembicara[];

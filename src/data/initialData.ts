@@ -92,6 +92,7 @@ export const INITIAL_RISALAH: RisalahItem[] = [
     judulRapat: 'Rapat Paripurna Penyerahan Ranperda Inisiatif DPRD tentang Perlindungan Komoditas Kakao dan Kelapa Sawit Sulbar',
     jenisRapat: 'Rapat Paripurna',
     hariTanggalWaktu: 'Senin, 28 Juli 2026 | 09.30 - 12.15 WITA',
+    ruanganRapat: 'Ruang Sidang Paripurna Utama Lantai 2',
     pimpinanRapat: 'Ketua DPRD Provinsi Sulawesi Barat (Didampingi Wakil Ketua I & Wakil Ketua II)',
     anggotaHadir: '38 dari 41 Anggota DPRD Sulbar (Hadir Fisik & Kuorum)',
     transkripPembicara: [
@@ -262,6 +263,7 @@ export const INITIAL_RISALAH: RisalahItem[] = [
     judulRapat: 'Rapat Dengar Pendapat (RDP) Komisi III Evaluasi Kerusakan Jalan Poros Mamuju - Kalukku - Mamasa',
     jenisRapat: 'Rapat Dengar Pendapat (RDP)',
     hariTanggalWaktu: 'Rabu, 22 Juli 2026 | 13.30 - 16.00 WITA',
+    ruanganRapat: 'Ruang Rapat Komisi III Gedung B',
     pimpinanRapat: 'Ketua Komisi III DPRD Sulbar (Dr. H. Amalia)',
     anggotaHadir: '9 Anggota Komisi III & Kepala Dinas PUPR Pemprov Sulbar beserta jajaran',
     transkripPembicara: [
@@ -416,6 +418,7 @@ export const INITIAL_RISALAH: RisalahItem[] = [
     judulRapat: 'Rapat Badan Musyawarah (Bamus) Penetapan Jadwal Masa Persidangan III Tahun Sidang 2026',
     jenisRapat: 'Rapat Bamus',
     hariTanggalWaktu: 'Senin, 20 Juli 2026 | 10.00 - 12.00 WITA',
+    ruanganRapat: 'Ruang Rapat Badan Musyawarah (Bamus) Lantai 1',
     pimpinanRapat: 'Wakil Ketua II DPRD Sulbar (Pimpinan Bamus)',
     anggotaHadir: '15 Anggota Badan Musyawarah & Tim Sekretariat Dewan',
     transkripPembicara: [
@@ -541,6 +544,7 @@ export const INITIAL_RISALAH: RisalahItem[] = [
     judulRapat: 'Rapat Kerja Komisi IV Pengawasan Penyaluran Beasiswa Sulbar Cerdas TA 2026',
     jenisRapat: 'Rapat Komisi IV',
     hariTanggalWaktu: 'Kamis, 16 Juli 2026 | 09.00 - 11.45 WITA',
+    ruanganRapat: 'Ruang Rapat Komisi IV Gedung A',
     pimpinanRapat: 'Ketua Komisi IV DPRD Sulbar',
     anggotaHadir: '8 Anggota Komisi IV & Kepala Dinas Pendidikan dan Kebudayaan',
     transkripPembicara: [
